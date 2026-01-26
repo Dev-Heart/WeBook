@@ -34,19 +34,22 @@ interface AvailabilitySettings {
   advance_booking_days: number
 }
 
+import { checkBookingAvailability } from '@/app/actions'
+
 export default function BookingPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [step, setStep] = useState<'service' | 'datetime' | 'details' | 'success'>('service')
   const supabase = createClient()
-  
+
   // Business data
   const [profile, setProfile] = useState<BusinessProfile | null>(null)
   const [services, setServices] = useState<Service[]>([])
   const [availability, setAvailability] = useState<AvailabilitySettings | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  
+  const [isUnavailable, setIsUnavailable] = useState(false)
+
   // Form state
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date>()
@@ -73,7 +76,7 @@ export default function BookingPage() {
     try {
       // For now, fetch the first user's business (in production, use URL param or subdomain)
       const { data: users } = await supabase.from('business_profiles').select('user_id').limit(1).single()
-      
+
       if (!users) {
         setLoading(false)
         return
@@ -81,6 +84,14 @@ export default function BookingPage() {
 
       const targetUserId = users.user_id
       setUserId(targetUserId)
+
+      // Check if business has active subscription
+      const isAvailable = await checkBookingAvailability(targetUserId)
+      if (!isAvailable) {
+        setIsUnavailable(true)
+        setLoading(false)
+        return
+      }
 
       // Fetch business profile
       const { data: profileData } = await supabase
@@ -210,60 +221,27 @@ export default function BookingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedService || !selectedDate || !selectedTime || !userId) return
-    
+
     setIsSubmitting(true)
-    
+
     try {
       const dateStr = selectedDate.toISOString().split('T')[0]
 
-      // Create booking
-      const { error } = await supabase
-        .from('bookings')
-        .insert({
-          user_id: userId,
-          service_id: selectedService.id,
-          service_name: selectedService.name,
-          client_name: clientName,
-          client_phone: clientPhone,
-          client_email: clientEmail || null,
-          date: dateStr,
-          time: selectedTime,
-          notes: notes || null,
-          status: 'scheduled',
-        })
+      const result = await createBooking({
+        userId: userId,
+        serviceId: selectedService.id,
+        serviceName: selectedService.name,
+        clientName: clientName,
+        clientPhone: clientPhone,
+        clientEmail: clientEmail || null,
+        date: dateStr,
+        time: selectedTime,
+        notes: notes || null,
+        price: selectedService.price
+      })
 
-      if (error) throw error
+      if (!result.success) throw new Error(result.error || 'Failed to create booking')
 
-      // Create or update client
-      const { data: existingClient } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('phone', clientPhone)
-        .single()
-
-      if (existingClient) {
-        await supabase
-          .from('clients')
-          .update({
-            visits: existingClient.visits + 1,
-            last_visit: dateStr,
-          })
-          .eq('id', existingClient.id)
-      } else {
-        await supabase
-          .from('clients')
-          .insert({
-            user_id: userId,
-            name: clientName,
-            phone: clientPhone,
-            email: clientEmail || null,
-            visits: 1,
-            total_spent: 0,
-            vip: false,
-          })
-      }
-      
       setStep('success')
     } catch (error) {
       console.error('[v0] Error saving booking:', error)
@@ -277,6 +255,24 @@ export default function BookingPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (isUnavailable) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+            <div className="mx-auto mb-4 w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+              <Clock className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <CardTitle>Booking Unavailable</CardTitle>
+            <CardDescription className="mt-2 text-balance">
+              This business is currently not accepting new bookings. Please contact them directly or try again later.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     )
   }
@@ -326,7 +322,7 @@ export default function BookingPage() {
                 <span className="font-medium">{profile.currency} {selectedService?.price}</span>
               </div>
             </div>
-            <Button 
+            <Button
               onClick={() => {
                 setStep('service')
                 setSelectedService(null)
@@ -336,8 +332,8 @@ export default function BookingPage() {
                 setClientPhone('')
                 setClientEmail('')
                 setNotes('')
-              }} 
-              variant="outline" 
+              }}
+              variant="outline"
               className="w-full"
             >
               Book Another Service
@@ -372,7 +368,7 @@ export default function BookingPage() {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 {services.map((service) => (
-                  <Card 
+                  <Card
                     key={service.id}
                     className="cursor-pointer hover:border-primary transition-colors"
                     onClick={() => handleServiceSelect(service)}
@@ -408,7 +404,7 @@ export default function BookingPage() {
             >
               ← Back to Services
             </Button>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>{selectedService.name}</CardTitle>
@@ -427,13 +423,13 @@ export default function BookingPage() {
                       const today = new Date()
                       today.setHours(0, 0, 0, 0)
                       if (date < today) return true
-                      
+
                       if (availability) {
                         const maxDate = new Date()
                         maxDate.setDate(maxDate.getDate() + availability.advance_booking_days)
                         if (date > maxDate) return true
                       }
-                      
+
                       return false
                     }}
                     className="rounded-md border w-full"
@@ -499,7 +495,7 @@ export default function BookingPage() {
             >
               ← Back to Date & Time
             </Button>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>Your Details</CardTitle>

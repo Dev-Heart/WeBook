@@ -18,108 +18,108 @@ export default function DashboardPage() {
     setShowDemo(isDemoMode())
   }, [])
 
-  const currencySymbol = profile?.currency === 'GHS' ? 'GH₵' : 
-                         profile?.currency === 'NGN' ? '₦' :
-                         profile?.currency === 'KES' ? 'KSh' :
-                         profile?.currency === 'ZAR' ? 'R' :
-                         profile?.currency === 'USD' ? '$' :
-                         profile?.currency === 'EUR' ? '€' : 
-                         profile?.currency === 'GBP' ? '£' : 'GH₵'
+  const currencySymbol = profile?.currency === 'GHS' ? 'GH₵' :
+    profile?.currency === 'NGN' ? '₦' :
+      profile?.currency === 'KES' ? 'KSh' :
+        profile?.currency === 'ZAR' ? 'R' :
+          profile?.currency === 'USD' ? '$' :
+            profile?.currency === 'EUR' ? '€' :
+              profile?.currency === 'GBP' ? '£' : 'GH₵'
 
   const stats = showDemo
     ? [
-        {
-          title: "Today's Bookings",
-          value: String(DEMO_DATA.stats.todayBookings),
-          description: `${DEMO_DATA.stats.todayCompleted} completed, ${DEMO_DATA.stats.todayBookings - DEMO_DATA.stats.todayCompleted} upcoming`,
-          icon: Calendar,
-        },
-        {
-          title: 'Upcoming',
-          value: String(DEMO_DATA.stats.weeklyUpcoming),
-          description: 'This week',
-          icon: Clock,
-        },
-        {
-          title: 'Completed Jobs',
-          value: String(DEMO_DATA.stats.monthlyCompleted),
-          description: 'This month',
-          icon: CheckCircle,
-        },
-        {
-          title: 'Total Income',
-          value: `${currencySymbol} ${DEMO_DATA.stats.monthlyIncome.toLocaleString()}`,
-          description: 'This month',
-          icon: DollarSign,
-        },
-      ]
+      {
+        title: "Today's Bookings",
+        value: String(DEMO_DATA.stats.todayBookings),
+        description: `${DEMO_DATA.stats.todayCompleted} completed, ${DEMO_DATA.stats.todayBookings - DEMO_DATA.stats.todayCompleted} upcoming`,
+        icon: Calendar,
+      },
+      {
+        title: 'Upcoming',
+        value: String(DEMO_DATA.stats.weeklyUpcoming),
+        description: 'This week',
+        icon: Clock,
+      },
+      {
+        title: 'Completed Jobs',
+        value: String(DEMO_DATA.stats.monthlyCompleted),
+        description: 'This month',
+        icon: CheckCircle,
+      },
+      {
+        title: 'Total Income',
+        value: `${currencySymbol} ${DEMO_DATA.stats.monthlyIncome.toLocaleString()}`,
+        description: 'This month',
+        icon: DollarSign,
+      },
+    ]
     : [
-        {
-          title: "Today's Bookings",
-          value: '0',
-          description: 'No bookings yet',
-          icon: Calendar,
-        },
-        {
-          title: 'Upcoming',
-          value: '0',
-          description: 'This week',
-          icon: Clock,
-        },
-        {
-          title: 'Completed Jobs',
-          value: '0',
-          description: 'This month',
-          icon: CheckCircle,
-        },
-        {
-          title: 'Total Income',
-          value: `${currencySymbol} 0`,
-          description: 'This month',
-          icon: DollarSign,
-        },
-      ]
+      {
+        title: "Today's Bookings",
+        value: '0',
+        description: 'No bookings yet',
+        icon: Calendar,
+      },
+      {
+        title: 'Upcoming',
+        value: '0',
+        description: 'This week',
+        icon: Clock,
+      },
+      {
+        title: 'Completed Jobs',
+        value: '0',
+        description: 'This month',
+        icon: CheckCircle,
+      },
+      {
+        title: 'Total Income',
+        value: `${currencySymbol} 0`,
+        description: 'This month',
+        icon: DollarSign,
+      },
+    ]
 
   const upcomingBookings = showDemo ? DEMO_DATA.bookings : []
 
   // Chart data placeholders
   const incomeData = showDemo
     ? [
-        { month: 'Jan', income: 1200 },
-        { month: 'Feb', income: 1800 },
-        { month: 'Mar', income: 1500 },
-        { month: 'Apr', income: 2200 },
-        { month: 'May', income: 2800 },
-        { month: 'Jun', income: 3100 },
-      ]
+      { month: 'Jan', income: 1200 },
+      { month: 'Feb', income: 1800 },
+      { month: 'Mar', income: 1500 },
+      { month: 'Apr', income: 2200 },
+      { month: 'May', income: 2800 },
+      { month: 'Jun', income: 3100 },
+    ]
     : [
-        { month: 'Jan', income: 0 },
-        { month: 'Feb', income: 0 },
-        { month: 'Mar', income: 0 },
-        { month: 'Apr', income: 0 },
-        { month: 'May', income: 0 },
-        { month: 'Jun', income: 0 },
-      ]
+      { month: 'Jan', income: 0 },
+      { month: 'Feb', income: 0 },
+      { month: 'Mar', income: 0 },
+      { month: 'Apr', income: 0 },
+      { month: 'May', income: 0 },
+      { month: 'Jun', income: 0 },
+    ]
 
   const bookingsData = showDemo
     ? [
-        { day: 'Mon', bookings: 3 },
-        { day: 'Tue', bookings: 5 },
-        { day: 'Wed', bookings: 4 },
-        { day: 'Thu', bookings: 7 },
-        { day: 'Fri', bookings: 6 },
-        { day: 'Sat', bookings: 8 },
-        { day: 'Sun', bookings: 2 },
-      ]
+      { day: 'Mon', bookings: 3 },
+      { day: 'Tue', bookings: 5 },
+      { day: 'Wed', bookings: 4 },
+      { day: 'Thu', bookings: 7 },
+      { day: 'Fri', bookings: 6 },
+      { day: 'Sat', bookings: 8 },
+      { day: 'Sun', bookings: 2 },
+    ]
     : [
-        { day: 'Mon', bookings: 0 },
-        { day: 'Tue', bookings: 0 },
-        { day: 'Wed', bookings: 0 },
-        { day: 'Thu', bookings: 0 },
-        { day: 'Fri', bookings: 0 },
-        { day: 'Sat', bookings: 0 },
-        { day: 'Sun', bookings: 0 },
-      ]
+      { day: 'Mon', bookings: 0 },
+      { day: 'Tue', bookings: 0 },
+      { day: 'Wed', bookings: 0 },
+      { day: 'Thu', bookings: 0 },
+      { day: 'Fri', bookings: 0 },
+      { day: 'Sat', bookings: 0 },
+      { day: 'Sun', bookings: 0 },
+    ]
 
   const firstName = profile?.name?.split(' ')[0] || 'there'
 
@@ -135,6 +135,24 @@ export default function DashboardPage() {
             ? "Here's what's happening with your business today."
             : "Your dashboard is ready. Start by adding your first booking or client."}
         </p>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="flex gap-2">
+        <Button className="gap-2" asChild>
+          <a href="/book" target="_blank">
+            <Calendar className="size-4" />
+            New Booking
+          </a>
+        </Button>
+        <Button variant="outline" className="gap-2">
+          <CheckCircle className="size-4" />
+          Add Client
+        </Button>
+        <Button variant="outline" className="gap-2">
+          <DollarSign className="size-4" />
+          Record Income
+        </Button>
       </div>
 
       {/* Stats Cards */}

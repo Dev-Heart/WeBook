@@ -14,7 +14,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Calendar, Search, MoreVertical, Check, X, Clock, Loader2, Plus } from 'lucide-react'
+import { Calendar, Search, MoreVertical, Check, X, Clock, Loader2, Plus, Bell } from 'lucide-react'
+import { toast } from "sonner"
 import { createClient } from '@/lib/supabase/client'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
@@ -30,16 +31,22 @@ interface Booking {
   created_at: string
 }
 
+import { useSubscription } from '@/components/subscription-provider'
+import { cancelBookingAction, sendReminderAction } from '@/app/actions'
+
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const supabase = createClient()
+  const { isLocked } = useSubscription()
 
   useEffect(() => {
     loadBookings()
   }, [])
+
+  // ... (rest of loadBookings and updateBookingStatus)
 
   async function loadBookings() {
     try {
@@ -66,22 +73,36 @@ export default function BookingsPage() {
     }
   }
 
+
+
   async function updateBookingStatus(bookingId: string, newStatus: Booking['status']) {
     setUpdatingId(bookingId)
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status: newStatus })
-        .eq('id', bookingId)
+      if (newStatus === 'cancelled') {
+        const result = await cancelBookingAction(bookingId)
+        if (!result.success) {
+          toast.error(result.error || 'Failed to cancel booking')
+          throw new Error(result.error)
+        }
+        toast.success('Booking cancelled')
+      } else {
+        const { error } = await supabase
+          .from('bookings')
+          .update({ status: newStatus })
+          .eq('id', bookingId)
 
-      if (error) throw error
+        if (error) throw error
+      }
 
-      setBookings(prev => 
+
+
+      setBookings(prev =>
         prev.map(b => b.id === bookingId ? { ...b, status: newStatus } : b)
       )
+      if (newStatus !== 'cancelled') toast.success('Booking status updated')
     } catch (error) {
       console.error('[v0] Error updating booking:', error)
-      alert('Failed to update booking status')
+      toast.error('Failed to update booking status')
     } finally {
       setUpdatingId(null)
     }
@@ -105,9 +126,9 @@ export default function BookingsPage() {
 
   function formatDate(dateStr: string): string {
     const date = new Date(dateStr + 'T00:00:00')
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
       day: 'numeric',
       year: 'numeric'
     })
@@ -123,7 +144,7 @@ export default function BookingsPage() {
     return bookingDate < new Date() || ['completed', 'cancelled'].includes(booking.status)
   }
 
-  const filteredBookings = bookings.filter(b => 
+  const filteredBookings = bookings.filter(b =>
     b.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     b.client_phone.includes(searchQuery) ||
     b.service_name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -182,7 +203,10 @@ export default function BookingsPage() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Update Status</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'confirmed')}>
+              <DropdownMenuItem
+                onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                disabled={isLocked}
+              >
                 <Check className="mr-2 h-4 w-4" />
                 Confirm
               </DropdownMenuItem>
@@ -190,7 +214,7 @@ export default function BookingsPage() {
                 <Check className="mr-2 h-4 w-4" />
                 Mark Complete
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => updateBookingStatus(booking.id, 'cancelled')}
                 className="text-destructive"
               >
@@ -221,12 +245,19 @@ export default function BookingsPage() {
             Manage your appointments and schedule
           </p>
         </div>
-        <Button className="gap-2" asChild>
-          <a href="/book" target="_blank">
+        {isLocked ? (
+          <Button className="gap-2" disabled>
             <Plus className="size-4" />
             Share Booking Link
-          </a>
-        </Button>
+          </Button>
+        ) : (
+          <Button className="gap-2" asChild>
+            <a href="/book" target="_blank">
+              <Plus className="size-4" />
+              Share Booking Link
+            </a>
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -258,7 +289,7 @@ export default function BookingsPage() {
                 <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-medium mb-2">No upcoming bookings</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  {searchQuery 
+                  {searchQuery
                     ? 'No bookings match your search.'
                     : 'Share your booking link with clients so they can schedule appointments.'
                   }
@@ -287,7 +318,7 @@ export default function BookingsPage() {
                 <Clock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-medium mb-2">No past bookings yet</h3>
                 <p className="text-sm text-muted-foreground">
-                  {searchQuery 
+                  {searchQuery
                     ? 'No bookings match your search.'
                     : 'Your completed appointments will show up here.'
                   }

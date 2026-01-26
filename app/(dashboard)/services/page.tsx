@@ -150,9 +150,12 @@ function ServiceCard({ service }: { service: typeof services[0] }) {
   )
 }
 
+import { useSubscription } from "@/components/subscription-provider"
+
 export default function ServicesPage() {
   const categories = [...new Set(services.map((s) => s.category))]
   const activeServices = services.filter((s) => s.active).length
+  const { isLocked } = useSubscription()
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
@@ -162,7 +165,7 @@ export default function ServicesPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Services</h1>
           <p className="text-muted-foreground">Manage what you offer to clients</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" disabled={isLocked}>
           <Plus className="size-4" />
           Add Service
         </Button>

@@ -102,8 +102,11 @@ const clients = [
   },
 ]
 
+import { useSubscription } from "@/components/subscription-provider"
+
 export default function ClientsPage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const { isLocked } = useSubscription()
 
   const filteredClients = clients.filter((client) =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -123,7 +126,7 @@ export default function ClientsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
           <p className="text-muted-foreground">Keep track of your customers</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" disabled={isLocked}>
           <Plus className="size-4" />
           Add Client
         </Button>

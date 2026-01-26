@@ -51,6 +51,8 @@ const defaultSettings: AvailabilitySettings = {
   advanceBookingDays: 30,
 }
 
+import { useSubscription } from '@/components/subscription-provider'
+
 export default function AvailabilityPage() {
   const [settings, setSettings] = useState<AvailabilitySettings>(defaultSettings)
   const [userId, setUserId] = useState<string | null>(null)
@@ -58,10 +60,12 @@ export default function AvailabilityPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const supabase = createClient()
+  const { isLocked } = useSubscription()
 
   useEffect(() => {
     loadSettings()
   }, [])
+
 
   async function loadSettings() {
     try {
@@ -212,7 +216,7 @@ export default function AvailabilityPage() {
                 />
                 <Label className="font-medium">{label}</Label>
               </div>
-              
+
               {settings[key].enabled && (
                 <div className="flex flex-wrap items-center gap-3 flex-1">
                   <div className="flex items-center gap-2">
@@ -312,7 +316,7 @@ export default function AvailabilityPage() {
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={saveSettings} disabled={saving} size="lg">
+        <Button onClick={saveSettings} disabled={saving || isLocked} size="lg">
           <Save className="h-4 w-4 mr-2" />
           {saving ? 'Saving...' : 'Save Settings'}
         </Button>

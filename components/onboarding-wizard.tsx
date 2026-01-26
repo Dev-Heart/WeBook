@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch'
 import { Progress } from '@/components/ui/progress'
 import { Sparkles, Building2, Package, Settings, CheckCircle, Plus, X } from 'lucide-react'
 import { saveOnboardingData, type BusinessProfile, type Service, type Preferences, DEMO_DATA } from '@/lib/business-data'
+import { startTrialAction } from '@/app/actions'
 
 const BUSINESS_TYPES = [
   'Barber',
@@ -75,7 +76,7 @@ export function OnboardingWizard() {
     setServices(services.filter((_, i) => i !== index))
   }
 
-  const handleFinish = (isDemoMode: boolean) => {
+  const handleFinish = async (isDemoMode: boolean) => {
     const onboardingData = {
       completed: true,
       profile: profile as BusinessProfile,
@@ -89,6 +90,12 @@ export function OnboardingWizard() {
     }
 
     saveOnboardingData(onboardingData)
+
+    // Attempt to start server-side trial if user is authenticated
+    if (!isDemoMode) {
+      await startTrialAction()
+    }
+
     router.push('/')
     router.refresh()
   }
