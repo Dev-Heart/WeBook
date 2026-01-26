@@ -1,7 +1,8 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { getSubscriptionStatus, type SubscriptionStatus, type SubscriptionPlan } from '@/lib/subscription'
+import { getSubscriptionStatusAction } from '@/app/actions'
+import { type SubscriptionStatus, type SubscriptionPlan } from '@/lib/definitions'
 
 interface SubscriptionContextType {
     status: SubscriptionStatus | 'none'
@@ -39,7 +40,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
     const refreshSubscription = async () => {
         try {
-            const data = await getSubscriptionStatus()
+            const data = await getSubscriptionStatusAction()
             if (data) {
                 setState({
                     status: data.status,

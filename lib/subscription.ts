@@ -1,17 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { cache } from 'react'
-
-export type SubscriptionStatus = 'trial' | 'active' | 'past_due' | 'canceled' | 'expired'
-export type SubscriptionPlan = 'free_trial' | 'sa_monthly' | 'intl_monthly'
-
-export interface Subscription {
-    id: string
-    user_id: string
-    status: SubscriptionStatus
-    plan: SubscriptionPlan
-    current_period_end: string
-    cancel_at_period_end: boolean
-}
+import { type Subscription, type SubscriptionStatus, type SubscriptionPlan } from '@/lib/definitions'
 
 export const TRIAL_DAYS = 30
 

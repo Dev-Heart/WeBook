@@ -243,25 +243,26 @@ export async function sendReminderAction(bookingId: string) {
         console.error('Send reminder failed:', error)
         return { success: false, error: 'Failed to send reminder' }
     }
+}
 
-    export async function getSubscriptionStatusAction() {
-        const sub = await getSubscription()
+export async function getSubscriptionStatusAction() {
+    const sub = await getSubscription()
 
-        if (!sub) return { status: 'none', daysRemaining: 0, isLocked: true }
+    if (!sub) return { status: 'none', daysRemaining: 0, isLocked: true }
 
-        const now = new Date()
-        const endDate = new Date(sub.current_period_end)
-        const daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+    const now = new Date()
+    const endDate = new Date(sub.current_period_end)
+    const daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
 
-        const isExpiredByDate = now > endDate
-        const isLocked = sub.status === 'expired' || (sub.status !== 'active' && sub.status !== 'trial' && isExpiredByDate)
+    const isExpiredByDate = now > endDate
+    const isLocked = sub.status === 'expired' || (sub.status !== 'active' && sub.status !== 'trial' && isExpiredByDate)
 
-        return {
-            status: sub.status,
-            plan: sub.plan,
-            daysRemaining,
-            isLocked,
-            subscription: sub
-        }
+    return {
+        status: sub.status,
+        plan: sub.plan,
+        daysRemaining,
+        isLocked,
+        subscription: sub
     }
 }
+
