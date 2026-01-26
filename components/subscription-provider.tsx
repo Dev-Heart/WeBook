@@ -43,7 +43,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             const data = await getSubscriptionStatusAction()
             if (data) {
                 setState({
-                    status: data.status,
+                    status: data.status as SubscriptionStatus | 'none',
                     plan: data.plan || null,
                     daysRemaining: data.daysRemaining,
                     isLocked: data.isLocked,
