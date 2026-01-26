@@ -237,7 +237,7 @@ export function OnboardingWizard() {
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <Button variant="outline" onClick={() => setStep(1)} className="w-full">
                   Back
                 </Button>
@@ -343,7 +343,7 @@ export function OnboardingWizard() {
                 </p>
               )}
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <Button variant="outline" onClick={() => setStep(2)} className="w-full">
                   Back
                 </Button>
@@ -443,7 +443,7 @@ export function OnboardingWizard() {
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <Button variant="outline" onClick={() => setStep(3)} className="w-full">
                   Back
                 </Button>
@@ -491,7 +491,7 @@ export function OnboardingWizard() {
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <Button variant="outline" onClick={() => setStep(4)} className="w-full">
                   Back
                 </Button>
