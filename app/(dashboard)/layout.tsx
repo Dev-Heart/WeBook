@@ -1,4 +1,6 @@
 import { SubscriptionStatusAlert } from "@/components/subscription-status-alert"
+import { AppSidebar, MobileHeader } from "@/components/app-sidebar"
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 
 export default function DashboardLayout({
   children,
