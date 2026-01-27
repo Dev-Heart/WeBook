@@ -9,6 +9,9 @@ import { Button } from '@/components/ui/button'
 import { getBusinessProfile, isDemoMode, DEMO_DATA } from '@/lib/business-data'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { AddClientDialog } from '@/components/add-client-dialog'
+import { AddServiceDialog } from '@/components/add-service-dialog'
+import { useState as useReactState } from 'react'
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<ReturnType<typeof getBusinessProfile>>(null)
@@ -20,6 +23,9 @@ export default function DashboardPage() {
     setShowDemo(isDemoMode())
     setMounted(true)
   }, [])
+
+  const [isClientDialogOpen, setIsClientDialogOpen] = useState(false)
+  const [isIncomeDialogOpen, setIsIncomeDialogOpen] = useState(false)
 
   if (!mounted) return null
 
@@ -150,14 +156,29 @@ export default function DashboardPage() {
             New Booking
           </a>
         </Button>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2" onClick={() => setIsClientDialogOpen(true)}>
           <CheckCircle className="size-4" />
           Add Client
         </Button>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2" onClick={() => setIsIncomeDialogOpen(true)}>
           <DollarSign className="size-4" />
           Record Income
         </Button>
+
+        <AddClientDialog
+          open={isClientDialogOpen}
+          onOpenChange={setIsClientDialogOpen}
+          onSuccess={() => {
+            // Dashboard doesn't show clients list directly, but we could refresh stats
+            setProfile(getBusinessProfile())
+          }}
+        />
+        {/* Placeholder for now, will create RecordIncomeDialog next */}
+        <AddServiceDialog
+          open={isIncomeDialogOpen}
+          onOpenChange={setIsIncomeDialogOpen}
+          onSuccess={() => setProfile(getBusinessProfile())}
+        />
       </div>
 
       {/* Stats Cards */}

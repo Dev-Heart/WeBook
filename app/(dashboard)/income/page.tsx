@@ -24,20 +24,21 @@ export default function IncomePage() {
   const [showDemo, setShowDemo] = useState(false)
   const [profile, setProfile] = useState<any>(null)
   const [transactions, setTransactions] = useState<any[]>([])
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     const isDemo = isDemoMode()
     setShowDemo(isDemo)
-    setProfile(getBusinessProfile())
+    const currentProfile = getBusinessProfile()
+    setProfile(currentProfile)
+    setMounted(true)
 
     if (isDemo) {
-      // For demo, we don't have a specific transactions array in DEMO_DATA yet
-      // but we can map demo bookings
       setTransactions((DEMO_DATA as any).bookings?.map((b: any) => ({
         id: b.id,
         client: b.client,
         service: b.service,
-        amount: `${profile?.currency === 'GHS' ? 'GH₵' : '$'} ${b.price}`,
+        amount: `${currentProfile?.currency === 'GHS' ? 'GH₵' : '$'} ${b.price}`,
         date: b.date,
         status: "received"
       })) || [])
@@ -47,12 +48,14 @@ export default function IncomePage() {
         id: b.id,
         client: b.clientName,
         service: b.serviceName,
-        amount: b.notes?.includes('price:') ? b.notes.split('price:')[1].trim() : "0", // Fallback logic
+        amount: b.notes?.includes('price:') ? b.notes.split('price:')[1].trim() : "0",
         date: b.date,
         status: "received"
       })))
     }
-  }, [profile])
+  }, [])
+
+  if (!mounted) return null
 
   const currencySymbol = profile?.currency === 'GHS' ? 'GH₵' :
     profile?.currency === 'NGN' ? '₦' :
