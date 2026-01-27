@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { getBusinessProfile, isDemoMode, DEMO_DATA } from '@/lib/business-data'
+import { createClient } from '@/lib/supabase/client'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { AddClientDialog } from '@/components/add-client-dialog'
@@ -18,10 +19,18 @@ export default function DashboardPage() {
   const [showDemo, setShowDemo] = useState(false)
   const [mounted, setMounted] = useState(false)
 
+  const [userId, setUserId] = useState<string | null>(null)
+
   useEffect(() => {
-    setProfile(getBusinessProfile())
-    setShowDemo(isDemoMode())
-    setMounted(true)
+    async function load() {
+      const sup = createClient() // Need to import this or use a prop
+      const { data: { user } } = await sup.auth.getUser()
+      setUserId(user?.id || null)
+      setProfile(getBusinessProfile())
+      setShowDemo(isDemoMode())
+      setMounted(true)
+    }
+    load()
   }, [])
 
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false)
@@ -151,7 +160,7 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <div className="flex gap-2">
         <Button className="gap-2" asChild>
-          <a href="/book" target="_blank">
+          <a href={`/book?u=${userId || ''}`} target="_blank">
             <Calendar className="size-4" />
             New Booking
           </a>

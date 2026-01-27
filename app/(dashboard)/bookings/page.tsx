@@ -40,6 +40,7 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const supabase = createClient()
   const { isLocked } = useSubscription()
 
@@ -56,6 +57,7 @@ export default function BookingsPage() {
         setLoading(false)
         return
       }
+      setUserId(user.id)
 
       const { data, error } = await supabase
         .from('bookings')
@@ -297,7 +299,7 @@ export default function BookingsPage() {
                 </p>
                 {!searchQuery && (
                   <Button className="gap-2" asChild>
-                    <a href={`/book?u=${bookings[0]?.user_id || ''}`} target="_blank">
+                    <a href={`/book?u=${userId || ''}`} target="_blank">
                       <Plus className="size-4" />
                       Open Booking Page
                     </a>
