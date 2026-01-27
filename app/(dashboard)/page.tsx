@@ -5,6 +5,7 @@ import { Calendar, CheckCircle, Clock, DollarSign, TrendingUp } from 'lucide-rea
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { getBusinessProfile, isDemoMode, DEMO_DATA } from '@/lib/business-data'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
@@ -12,11 +13,15 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 export default function DashboardPage() {
   const [profile, setProfile] = useState<ReturnType<typeof getBusinessProfile>>(null)
   const [showDemo, setShowDemo] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setProfile(getBusinessProfile())
     setShowDemo(isDemoMode())
+    setMounted(true)
   }, [])
+
+  if (!mounted) return null
 
   const currencySymbol = profile?.currency === 'GHS' ? 'GH₵' :
     profile?.currency === 'NGN' ? '₦' :

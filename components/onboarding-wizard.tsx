@@ -92,12 +92,13 @@ export function OnboardingWizard() {
     saveOnboardingData(onboardingData)
 
     // Attempt to start server-side trial if user is authenticated
+    // We don't await this strictly to prevent blocking navigation if it hangs
     if (!isDemoMode) {
-      await startTrialAction()
+      startTrialAction().catch(err => console.error('Failed to start trial:', err))
     }
 
-    router.push('/')
-    router.refresh()
+    // Force a hard navigation to ensure the OnboardingGate re-renders correctly
+    window.location.href = '/'
   }
 
   return (
@@ -238,13 +239,13 @@ export function OnboardingWizard() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <Button variant="outline" onClick={() => setStep(1)} className="w-full">
+                <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
                   Back
                 </Button>
                 <Button
                   onClick={() => setStep(3)}
                   disabled={!profile.name || !profile.type || !profile.city || !profile.country}
-                  className="w-full"
+                  className="flex-1"
                 >
                   Continue
                 </Button>
@@ -344,13 +345,13 @@ export function OnboardingWizard() {
               )}
 
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <Button variant="outline" onClick={() => setStep(2)} className="w-full">
+                <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
                   Back
                 </Button>
                 <Button
                   onClick={() => setStep(4)}
                   disabled={services.length === 0}
-                  className="w-full"
+                  className="flex-1"
                 >
                   Continue
                 </Button>
@@ -444,10 +445,10 @@ export function OnboardingWizard() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <Button variant="outline" onClick={() => setStep(3)} className="w-full">
+                <Button variant="outline" onClick={() => setStep(3)} className="flex-1">
                   Back
                 </Button>
-                <Button onClick={() => setStep(5)} className="w-full">
+                <Button onClick={() => setStep(5)} className="flex-1">
                   Continue
                 </Button>
               </div>
@@ -458,44 +459,44 @@ export function OnboardingWizard() {
         {/* Step 5: Finish */}
         {step === 5 && (
           <Card className="border-2">
-            <CardHeader className="text-center space-y-4 pb-8">
+            <CardHeader className="text-center space-y-3 pb-6">
               <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
                 <CheckCircle className="size-8 text-primary" />
               </div>
               <div className="space-y-2">
-                <CardTitle className="text-3xl">Your business is ready</CardTitle>
-                <CardDescription className="text-base leading-relaxed max-w-md mx-auto">
+                <CardTitle className="text-2xl sm:text-3xl">Your business is ready</CardTitle>
+                <CardDescription className="text-sm sm:text-base leading-relaxed max-w-md mx-auto">
                   You're all set! Start adding bookings and clients to see your business grow.
                 </CardDescription>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 rounded-lg bg-muted/50 space-y-2 text-sm">
-                <div className="flex justify-between">
+              <div className="p-3 sm:p-4 rounded-lg bg-muted/50 space-y-2 text-sm">
+                <div className="flex justify-between items-center gap-2">
                   <span className="text-muted-foreground">Business name</span>
-                  <span className="font-medium">{profile.name}</span>
+                  <span className="font-medium text-right">{profile.name}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center gap-2">
                   <span className="text-muted-foreground">Type</span>
-                  <span className="font-medium">{profile.type}</span>
+                  <span className="font-medium text-right">{profile.type}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center gap-2">
                   <span className="text-muted-foreground">Location</span>
-                  <span className="font-medium">
+                  <span className="font-medium text-right">
                     {profile.city}, {profile.country}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center gap-2">
                   <span className="text-muted-foreground">Services</span>
-                  <span className="font-medium">{services.length} added</span>
+                  <span className="font-medium text-right">{services.length} added</span>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <Button variant="outline" onClick={() => setStep(4)} className="w-full">
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Button variant="outline" onClick={() => setStep(4)} className="flex-1">
                   Back
                 </Button>
-                <Button onClick={() => handleFinish(false)} className="w-full" size="lg">
+                <Button onClick={() => handleFinish(false)} className="flex-1" size="lg">
                   Go to dashboard
                 </Button>
               </div>
