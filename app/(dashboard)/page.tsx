@@ -183,8 +183,7 @@ export default function DashboardPage() {
             setProfile(getBusinessProfile())
           }}
         />
-        {/* Placeholder for now, will create RecordIncomeDialog next */}
-        <AddServiceDialog
+        <AddIncomeDialog
           open={isIncomeDialogOpen}
           onOpenChange={setIsIncomeDialogOpen}
           onSuccess={() => setProfile(getBusinessProfile())}
