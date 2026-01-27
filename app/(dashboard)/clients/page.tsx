@@ -209,10 +209,9 @@ export default function ClientsPage() {
               {searchQuery ? "Try a different search term" : "Add your first client to get started"}
             </p>
             {!searchQuery && (
-              <Button className="mt-4 gap-2">
-                <Plus className="size-4" />
-                Add your first client
-              </Button>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Click the "Add Client" button above to get started.
+              </p>
             )}
           </CardContent>
         </Card>

@@ -22,8 +22,18 @@ import {
 } from '@/lib/business-data'
 import { toast } from 'sonner'
 
-export function AddServiceDialog({ onSuccess }: { onSuccess?: () => void }) {
-    const [open, setOpen] = useState(false)
+export function AddServiceDialog({
+    onSuccess,
+    open: externalOpen,
+    onOpenChange: externalOnOpenChange
+}: {
+    onSuccess?: () => void,
+    open?: boolean,
+    onOpenChange?: (open: boolean) => void
+}) {
+    const [internalOpen, setInternalOpen] = useState(false)
+    const open = externalOpen ?? internalOpen
+    const setOpen = externalOnOpenChange ?? setInternalOpen
     const [loading, setLoading] = useState(false)
     const [formData, setFormData] = useState({
         name: '',
