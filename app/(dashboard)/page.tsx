@@ -12,6 +12,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'rec
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { AddClientDialog } from '@/components/add-client-dialog'
 import { AddServiceDialog } from '@/components/add-service-dialog'
+import { AddIncomeDialog } from '@/components/add-income-dialog'
 import { useState as useReactState } from 'react'
 
 export default function DashboardPage() {

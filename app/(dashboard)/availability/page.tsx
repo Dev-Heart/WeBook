@@ -134,9 +134,9 @@ export default function AvailabilityPage() {
 
       setMessage({ type: 'success', text: 'Availability settings saved successfully!' })
       setTimeout(() => setMessage(null), 3000)
-    } catch (err) {
+    } catch (err: any) {
       console.error('[v0] Error saving settings:', err)
-      setMessage({ type: 'error', text: 'Failed to save settings. Please try again.' })
+      setMessage({ type: 'error', text: `Failed to save settings: ${err.message || 'Unknown error'}` })
     } finally {
       setSaving(false)
     }
