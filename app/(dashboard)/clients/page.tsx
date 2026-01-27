@@ -1,3 +1,5 @@
+"use client"
+
 import { useEffect, useState } from "react"
 import { MoreVertical, Phone, Plus, Search, Users, Mail } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
