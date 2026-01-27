@@ -34,7 +34,7 @@ interface AvailabilitySettings {
   advance_booking_days: number
 }
 
-import { checkBookingAvailability } from '@/app/actions'
+import { checkBookingAvailability, createBooking } from '@/app/actions'
 
 export default function BookingPage() {
   const router = useRouter()
@@ -74,15 +74,27 @@ export default function BookingPage() {
 
   async function loadBusinessData() {
     try {
-      // For now, fetch the first user's business (in production, use URL param or subdomain)
-      const { data: users } = await supabase.from('business_profiles').select('user_id').limit(1).single()
+      // Use 'u' param if available, otherwise fallback to first user (demo/owner check)
+      const queryUserId = searchParams.get('u')
+      let targetUserId = queryUserId
 
-      if (!users) {
+      if (!targetUserId) {
+        // Fallback: check if viewer is the owner
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          targetUserId = user.id
+        } else {
+          // If no user and no param, fetch first profile as fallback (demo)
+          const { data: users } = await supabase.from('business_profiles').select('user_id').limit(1).single()
+          targetUserId = users?.user_id || null
+        }
+      }
+
+      if (!targetUserId) {
         setLoading(false)
         return
       }
 
-      const targetUserId = users.user_id
       setUserId(targetUserId)
 
       // Check if business has active subscription
@@ -142,7 +154,7 @@ export default function BookingPage() {
 
     setLoadingSlots(true)
     try {
-      const dayName = date.toLocaleDateString('en-US', { weekday: 'lowercase' })
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
       const daySchedule = availability[dayName]
 
       if (!daySchedule || !daySchedule.enabled) {

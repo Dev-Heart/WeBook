@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 interface Booking {
   id: string
+  user_id: string
   client_name: string
   client_phone: string
   service_name: string
@@ -252,7 +253,7 @@ export default function BookingsPage() {
           </Button>
         ) : (
           <Button className="gap-2" asChild>
-            <a href="/book" target="_blank">
+            <a href={`/book?u=${bookings[0]?.user_id || ''}`} target="_blank">
               <Plus className="size-4" />
               Share Booking Link
             </a>
@@ -296,7 +297,7 @@ export default function BookingsPage() {
                 </p>
                 {!searchQuery && (
                   <Button className="gap-2" asChild>
-                    <a href="/book" target="_blank">
+                    <a href={`/book?u=${bookings[0]?.user_id || ''}`} target="_blank">
                       <Plus className="size-4" />
                       Open Booking Page
                     </a>
