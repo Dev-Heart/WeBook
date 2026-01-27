@@ -31,8 +31,7 @@ export default function LoginPage() {
             if (error) throw error
 
             toast.success('Successfully signed in!')
-            router.push('/')
-            router.refresh()
+            window.location.href = '/'
         } catch (error: any) {
             toast.error(error.message || 'Failed to sign in')
         } finally {
