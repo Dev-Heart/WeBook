@@ -1,5 +1,4 @@
-"use client"
-
+import { useEffect, useState } from "react"
 import { ArrowDown, ArrowUp, DollarSign, TrendingUp, Calendar } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -17,70 +16,75 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer } from "recharts"
-
-const weeklyData = [
-  { day: "Mon", income: 185 },
-  { day: "Tue", income: 320 },
-  { day: "Wed", income: 275 },
-  { day: "Thu", income: 410 },
-  { day: "Fri", income: 520 },
-  { day: "Sat", income: 680 },
-  { day: "Sun", income: 60 },
-]
-
-const recentTransactions = [
-  {
-    id: 1,
-    client: "Ama Mensah",
-    service: "Braids",
-    amount: "GH₵ 150",
-    date: "Today, 2:00 PM",
-    status: "received",
-  },
-  {
-    id: 2,
-    client: "Kofi Adu",
-    service: "Haircut",
-    amount: "GH₵ 35",
-    date: "Today, 11:00 AM",
-    status: "received",
-  },
-  {
-    id: 3,
-    client: "Akua Serwaa",
-    service: "Braids",
-    amount: "GH₵ 200",
-    date: "Yesterday",
-    status: "received",
-  },
-  {
-    id: 4,
-    client: "Yaw Boateng",
-    service: "Beard Trim",
-    amount: "GH₵ 25",
-    date: "Yesterday",
-    status: "received",
-  },
-  {
-    id: 5,
-    client: "Adwoa Poku",
-    service: "Wash & Set",
-    amount: "GH₵ 80",
-    date: "3 days ago",
-    status: "received",
-  },
-]
-
-const chartConfig = {
-  income: {
-    label: "Income",
-    color: "hsl(var(--chart-1))",
-  },
-} satisfies ChartConfig
+import { isDemoMode, DEMO_DATA, getBusinessProfile, getBookings } from "@/lib/business-data"
 
 export default function IncomePage() {
+  const [showDemo, setShowDemo] = useState(false)
+  const [profile, setProfile] = useState<any>(null)
+  const [transactions, setTransactions] = useState<any[]>([])
+
+  useEffect(() => {
+    const isDemo = isDemoMode()
+    setShowDemo(isDemo)
+    setProfile(getBusinessProfile())
+
+    if (isDemo) {
+      // For demo, we don't have a specific transactions array in DEMO_DATA yet
+      // but we can map demo bookings
+      setTransactions((DEMO_DATA as any).bookings?.map((b: any) => ({
+        id: b.id,
+        client: b.client,
+        service: b.service,
+        amount: `${profile?.currency === 'GHS' ? 'GH₵' : '$'} ${b.price}`,
+        date: b.date,
+        status: "received"
+      })) || [])
+    } else {
+      const bookings = getBookings()
+      setTransactions(bookings.filter(b => b.status === 'completed').map(b => ({
+        id: b.id,
+        client: b.clientName,
+        service: b.serviceName,
+        amount: b.notes?.includes('price:') ? b.notes.split('price:')[1].trim() : "0", // Fallback logic
+        date: b.date,
+        status: "received"
+      })))
+    }
+  }, [profile])
+
+  const currencySymbol = profile?.currency === 'GHS' ? 'GH₵' :
+    profile?.currency === 'NGN' ? '₦' :
+      profile?.currency === 'KES' ? 'KSh' :
+        profile?.currency === 'ZAR' ? 'R' :
+          profile?.currency === 'USD' ? '$' :
+            profile?.currency === 'EUR' ? '€' :
+              profile?.currency === 'GBP' ? '£' :
+                profile?.currency === 'CAD' ? 'C$' :
+                  profile?.currency === 'AUD' ? 'A$' :
+                    profile?.currency === 'JPY' ? '¥' :
+                      profile?.currency === 'CNY' ? '¥' :
+                        profile?.currency === 'INR' ? '₹' : '$'
+
+  const demoWeeklyData = [
+    { day: "Mon", income: 185 },
+    { day: "Tue", income: 320 },
+    { day: "Wed", income: 275 },
+    { day: "Thu", income: 410 },
+    { day: "Fri", income: 520 },
+    { day: "Sat", income: 680 },
+    { day: "Sun", income: 60 },
+  ]
+
+  const weeklyData = showDemo ? demoWeeklyData : []
   const totalThisWeek = weeklyData.reduce((sum, day) => sum + day.income, 0)
-  const avgDaily = Math.round(totalThisWeek / 7)
+  const avgDaily = weeklyData.length > 0 ? Math.round(totalThisWeek / weeklyData.length) : 0
+
+  const chartConfig = {
+    income: {
+      label: "Income",
+      color: "hsl(var(--chart-1))",
+    },
+  } satisfies ChartConfig
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
@@ -113,10 +117,10 @@ export default function IncomePage() {
             <DollarSign className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">GH₵ {totalThisWeek.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{currencySymbol} {totalThisWeek.toLocaleString()}</div>
             <div className="flex items-center gap-1 mt-1">
               <ArrowUp className="size-3 text-chart-1" />
-              <span className="text-xs text-chart-1 font-medium">12%</span>
+              <span className="text-xs text-chart-1 font-medium">0%</span>
               <span className="text-xs text-muted-foreground">vs last week</span>
             </div>
           </CardContent>
@@ -130,10 +134,10 @@ export default function IncomePage() {
             <Calendar className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">GH₵ 2,450</div>
+            <div className="text-2xl font-bold">{currencySymbol} {showDemo ? "2,450" : "0"}</div>
             <div className="flex items-center gap-1 mt-1">
               <ArrowUp className="size-3 text-chart-1" />
-              <span className="text-xs text-chart-1 font-medium">8%</span>
+              <span className="text-xs text-chart-1 font-medium">0%</span>
               <span className="text-xs text-muted-foreground">vs last month</span>
             </div>
           </CardContent>
@@ -147,7 +151,7 @@ export default function IncomePage() {
             <TrendingUp className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">GH₵ {avgDaily}</div>
+            <div className="text-2xl font-bold">{currencySymbol} {avgDaily}</div>
             <p className="text-xs text-muted-foreground mt-1">Based on this week</p>
           </CardContent>
         </Card>
@@ -160,7 +164,7 @@ export default function IncomePage() {
             <span className="text-sm">✓</span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
+            <div className="text-2xl font-bold">{showDemo ? "24" : "0"}</div>
             <p className="text-xs text-muted-foreground mt-1">This month</p>
           </CardContent>
         </Card>
@@ -185,10 +189,10 @@ export default function IncomePage() {
                 tickLine={false}
                 axisLine={false}
                 tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
-                tickFormatter={(value) => `₵${value}`}
+                tickFormatter={(value) => `${currencySymbol}${value}`}
               />
               <ChartTooltip
-                content={<ChartTooltipContent labelKey="day" nameKey="income" formatter={(value) => `GH₵ ${value}`} />}
+                content={<ChartTooltipContent labelKey="day" nameKey="income" formatter={(value) => `${currencySymbol} ${value}`} />}
               />
               <Bar
                 dataKey="income"
@@ -208,7 +212,7 @@ export default function IncomePage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {recentTransactions.map((transaction) => (
+            {transactions.length > 0 ? transactions.map((transaction) => (
               <div
                 key={transaction.id}
                 className="flex items-center justify-between py-2 border-b last:border-0"
@@ -218,17 +222,19 @@ export default function IncomePage() {
                   <p className="text-sm text-muted-foreground">{transaction.service}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-chart-1">{transaction.amount}</p>
+                  <p className="font-semibold text-chart-1">{transaction.amount.includes(currencySymbol) ? transaction.amount : `${currencySymbol} ${transaction.amount}`}</p>
                   <p className="text-xs text-muted-foreground">{transaction.date}</p>
                 </div>
               </div>
-            ))}
+            )) : (
+              <p className="text-sm text-muted-foreground py-4 text-center">No recent payments found.</p>
+            )}
           </div>
         </CardContent>
       </Card>
 
       {/* Empty State for when no data */}
-      {recentTransactions.length === 0 && (
+      {transactions.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
             <DollarSign className="size-12 mx-auto text-muted-foreground/50" />

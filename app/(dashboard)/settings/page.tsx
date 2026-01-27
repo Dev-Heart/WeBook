@@ -1,5 +1,4 @@
-"use client"
-
+import { useEffect, useState } from "react"
 import { Bell, Globe, Lock, MapPin, Phone, User } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -17,8 +16,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { getBusinessProfile, isDemoMode } from "@/lib/business-data"
 
 export default function SettingsPage() {
+  const [profile, setProfile] = useState<any>(null)
+
+  useEffect(() => {
+    setProfile(getBusinessProfile())
+  }, [])
+
+  const businessName = profile?.name || (isDemoMode() ? "Demo Business" : "My Business")
+  const initials = businessName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-3xl">
       {/* Page Header */}
@@ -39,7 +48,7 @@ export default function SettingsPage() {
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
             <Avatar className="size-20">
-              <AvatarFallback className="text-2xl bg-primary/10 text-primary">AK</AvatarFallback>
+              <AvatarFallback className="text-2xl bg-primary/10 text-primary">{initials}</AvatarFallback>
             </Avatar>
             <div className="space-y-2">
               <Button variant="outline" size="sm">Change Photo</Button>
@@ -47,20 +56,14 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input id="firstName" defaultValue="Amara" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input id="lastName" defaultValue="Kofi" />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="businessName">Business Name</Label>
+            <Input id="businessName" defaultValue={businessName} />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="businessName">Business Name</Label>
-            <Input id="businessName" defaultValue="Amara's Hair Studio" />
+            <Label htmlFor="businessType">Business Type</Label>
+            <Input id="businessType" defaultValue={profile?.type || "Professional"} />
           </div>
 
           <div className="space-y-2">
@@ -68,7 +71,7 @@ export default function SettingsPage() {
             <Textarea
               id="bio"
               placeholder="Tell clients about yourself and your services..."
-              defaultValue="Professional hairstylist with 5+ years experience. Specializing in braids, relaxers, and natural hair care."
+              defaultValue={profile?.bio || ""}
               rows={3}
             />
           </div>
@@ -89,18 +92,12 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="phone">Phone Number</Label>
-            <Input id="phone" type="tel" defaultValue="+233 24 555 1234" />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="whatsapp">WhatsApp Number</Label>
-            <Input id="whatsapp" type="tel" defaultValue="+233 24 555 1234" />
-            <p className="text-xs text-muted-foreground">Clients can message you directly on WhatsApp</p>
+            <Input id="phone" type="tel" defaultValue={profile?.phone || ""} />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
-            <Input id="email" type="email" defaultValue="amara.kofi@email.com" />
+            <Input id="email" type="email" defaultValue={profile?.email || ""} />
           </div>
 
           <Button>Save Changes</Button>
@@ -142,10 +139,10 @@ export default function SettingsPage() {
 
           <Button>Save Changes</Button>
         </CardContent>
-      </Card>
+      </Card >
 
       {/* Notifications Section */}
-      <Card>
+      < Card >
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="size-5" />
@@ -178,10 +175,10 @@ export default function SettingsPage() {
             <Switch />
           </div>
         </CardContent>
-      </Card>
+      </Card >
 
       {/* Preferences Section */}
-      <Card>
+      < Card >
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Globe className="size-5" />
@@ -192,7 +189,7 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="currency">Currency</Label>
-            <Select defaultValue="ghs">
+            <Select defaultValue={profile?.currency?.toLowerCase() || "ghs"}>
               <SelectTrigger id="currency">
                 <SelectValue placeholder="Select currency" />
               </SelectTrigger>
@@ -269,10 +266,10 @@ export default function SettingsPage() {
 
           <Button>Save Changes</Button>
         </CardContent>
-      </Card>
+      </Card >
 
       {/* Account Section */}
-      <Card>
+      < Card >
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lock className="size-5" />
@@ -299,13 +296,13 @@ export default function SettingsPage() {
             <Button variant="destructive" size="sm">Delete</Button>
           </div>
         </CardContent>
-      </Card>
+      </Card >
 
       {/* App Info */}
-      <div className="text-center text-sm text-muted-foreground py-6">
+      < div className="text-center text-sm text-muted-foreground py-6" >
         <p>WeBook v1.0.0</p>
         <p className="mt-1">Made with care for African entrepreneurs</p>
-      </div>
-    </div>
+      </div >
+    </div >
   )
 }

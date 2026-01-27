@@ -26,8 +26,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
 
 const navItems = [
   {
@@ -67,19 +65,33 @@ const navItems = [
   },
 ]
 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { getBusinessProfile, isDemoMode } from "@/lib/business-data"
+import { useEffect, useState } from "react"
+
 export function AppSidebar() {
   const pathname = usePathname()
   const { state } = useSidebar()
+  const [profile, setProfile] = useState<any>(null)
+
+  useEffect(() => {
+    setProfile(getBusinessProfile())
+  }, [])
+
+  const businessName = profile?.name || (isDemoMode() ? "Demo Business" : "My Business")
+  const businessType = profile?.type || (isDemoMode() ? "Professional" : "Entrepreneur")
+  const initials = businessName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <Link href="/" className="flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <span className="text-lg font-bold">W</span>
+            <span className="text-lg font-bold">{businessName[0]}</span>
           </div>
           <span className={`text-xl font-semibold tracking-tight transition-opacity duration-200 ${state === "collapsed" ? "opacity-0" : "opacity-100"}`}>
-            WeBook
+            {businessName}
           </span>
         </Link>
       </SidebarHeader>
@@ -111,12 +123,12 @@ export function AppSidebar() {
         <div className={`flex items-center gap-3 ${state === "collapsed" ? "justify-center" : ""}`}>
           <Avatar className="size-9">
             <AvatarFallback className="bg-accent text-accent-foreground font-medium">
-              AK
+              {initials}
             </AvatarFallback>
           </Avatar>
           <div className={`flex-1 transition-opacity duration-200 ${state === "collapsed" ? "hidden" : "block"}`}>
-            <p className="text-sm font-medium leading-tight">Amara Kofi</p>
-            <p className="text-xs text-muted-foreground">Hair Stylist</p>
+            <p className="text-sm font-medium leading-tight">{businessName}</p>
+            <p className="text-xs text-muted-foreground">{businessType}</p>
           </div>
         </div>
       </SidebarFooter>

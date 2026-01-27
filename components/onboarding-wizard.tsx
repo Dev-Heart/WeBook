@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch'
 import { Progress } from '@/components/ui/progress'
 import { Sparkles, Building2, Package, Settings, CheckCircle, Plus, X } from 'lucide-react'
 import { saveOnboardingData, type BusinessProfile, type Service, type Preferences, DEMO_DATA } from '@/lib/business-data'
+import { toast } from 'sonner'
 import { startTrialAction } from '@/app/actions'
 
 const BUSINESS_TYPES = [
@@ -92,13 +93,25 @@ export function OnboardingWizard() {
     saveOnboardingData(onboardingData)
 
     // Attempt to start server-side trial if user is authenticated
-    // We don't await this strictly to prevent blocking navigation if it hangs
     if (!isDemoMode) {
-      startTrialAction().catch(err => console.error('Failed to start trial:', err))
+      toast.promise(startTrialAction(), {
+        loading: 'Initializing your 30-day free trial...',
+        success: () => {
+          // Force a hard navigation to ensure the OnboardingGate re-renders correctly
+          window.location.href = '/'
+          return 'Success! Redirecting to dashboard...'
+        },
+        error: (err) => {
+          console.error('Failed to start trial:', err)
+          // Still redirect, but maybe show a warning
+          window.location.href = '/'
+          return 'Proceeding to dashboard...'
+        }
+      })
+    } else {
+      // Demo mode redirect
+      window.location.href = '/'
     }
-
-    // Force a hard navigation to ensure the OnboardingGate re-renders correctly
-    window.location.href = '/'
   }
 
   return (

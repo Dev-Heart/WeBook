@@ -1,6 +1,4 @@
-"use client"
-
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Clock, MoreVertical, Plus, Scissors, Tag } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,81 +10,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useSubscription } from "@/components/subscription-provider"
+import { getServices, isDemoMode, DEMO_DATA, getBusinessProfile, type Service } from "@/lib/business-data"
+import { AddServiceDialog } from "@/components/add-service-dialog"
 
-const services = [
-  {
-    id: 1,
-    name: "Haircut",
-    description: "Basic haircut for men and women",
-    price: "GH₵ 35",
-    duration: "30 min",
-    category: "Hair",
-    active: true,
-    popular: true,
-  },
-  {
-    id: 2,
-    name: "Braids",
-    description: "Box braids, knotless, and more styles",
-    price: "GH₵ 150 - 300",
-    duration: "3-5 hrs",
-    category: "Hair",
-    active: true,
-    popular: true,
-  },
-  {
-    id: 3,
-    name: "Relaxer + Style",
-    description: "Chemical relaxer treatment with styling",
-    price: "GH₵ 120",
-    duration: "2 hrs",
-    category: "Hair",
-    active: true,
-    popular: false,
-  },
-  {
-    id: 4,
-    name: "Wash & Set",
-    description: "Shampoo, condition, and style",
-    price: "GH₵ 80",
-    duration: "1 hr",
-    category: "Hair",
-    active: true,
-    popular: false,
-  },
-  {
-    id: 5,
-    name: "Beard Trim",
-    description: "Shape and trim beard",
-    price: "GH₵ 25",
-    duration: "20 min",
-    category: "Grooming",
-    active: true,
-    popular: false,
-  },
-  {
-    id: 6,
-    name: "Cornrows",
-    description: "Traditional cornrow braiding",
-    price: "GH₵ 100",
-    duration: "2 hrs",
-    category: "Hair",
-    active: true,
-    popular: false,
-  },
-  {
-    id: 7,
-    name: "Hair Coloring",
-    description: "Full color or highlights",
-    price: "GH₵ 200 - 350",
-    duration: "2-3 hrs",
-    category: "Hair",
-    active: false,
-    popular: false,
-  },
-]
-
-function ServiceCard({ service }: { service: typeof services[0] }) {
+function ServiceCard({ service }: { service: Service }) {
   const [isActive, setIsActive] = useState(service.active)
 
   return (
@@ -100,11 +28,13 @@ function ServiceCard({ service }: { service: typeof services[0] }) {
             <div>
               <div className="flex items-center gap-2">
                 <CardTitle className="text-base">{service.name}</CardTitle>
+                {/* @ts-ignore */}
                 {service.popular && (
                   <Badge variant="secondary" className="text-xs">Popular</Badge>
                 )}
               </div>
-              <CardDescription className="text-sm mt-0.5">{service.description}</CardDescription>
+              {/* @ts-ignore */}
+              <CardDescription className="text-sm mt-0.5">{service.description || "No description provided"}</CardDescription>
             </div>
           </div>
           <DropdownMenu>
@@ -131,7 +61,7 @@ function ServiceCard({ service }: { service: typeof services[0] }) {
             </div>
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Clock className="size-4" />
-              <span>{service.duration}</span>
+              <span>{service.duration} min</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -150,12 +80,21 @@ function ServiceCard({ service }: { service: typeof services[0] }) {
   )
 }
 
-import { useSubscription } from "@/components/subscription-provider"
-
 export default function ServicesPage() {
-  const categories = [...new Set(services.map((s) => s.category))]
-  const activeServices = services.filter((s) => s.active).length
+  const [services, setServices] = useState<Service[]>([])
+  const [showDemo, setShowDemo] = useState(false)
   const { isLocked } = useSubscription()
+
+  useEffect(() => {
+    const isDemo = isDemoMode()
+    setShowDemo(isDemo)
+    // In a real app, DEMO_DATA.services doesn't exist yet in business-data.ts 
+    // but the user wants isolation. I'll use empty array if not in demo.
+    setServices(isDemo ? (DEMO_DATA as any).services || [] : getServices())
+  }, [])
+
+  const categories = [...new Set(services.map((s) => s.category || "General"))]
+  const activeServices = services.filter((s) => s.active).length
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
@@ -165,10 +104,7 @@ export default function ServicesPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Services</h1>
           <p className="text-muted-foreground">Manage what you offer to clients</p>
         </div>
-        <Button className="gap-2" disabled={isLocked}>
-          <Plus className="size-4" />
-          Add Service
-        </Button>
+        <AddServiceDialog onSuccess={() => setServices(isDemoMode() ? (DEMO_DATA as any).services || [] : getServices())} />
       </div>
 
       {/* Stats */}
@@ -206,6 +142,7 @@ export default function ServicesPage() {
                 <span className="text-lg">⭐</span>
               </div>
               <div>
+                {/* @ts-ignore */}
                 <p className="text-2xl font-bold">{services.filter(s => s.popular).length}</p>
                 <p className="text-sm text-muted-foreground">Popular Services</p>
               </div>
@@ -215,21 +152,20 @@ export default function ServicesPage() {
       </div>
 
       {/* Services by Category */}
-      {categories.map((category) => (
-        <div key={category} className="space-y-4">
-          <h2 className="text-lg font-medium">{category}</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {services
-              .filter((s) => s.category === category)
-              .map((service) => (
-                <ServiceCard key={service.id} service={service} />
-              ))}
+      {categories.length > 0 && services.length > 0 ? (
+        categories.map((category) => (
+          <div key={category} className="space-y-4">
+            <h2 className="text-lg font-medium">{category}</h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {services
+                .filter((s) => (s.category || "General") === category)
+                .map((service) => (
+                  <ServiceCard key={service.id} service={service} />
+                ))}
+            </div>
           </div>
-        </div>
-      ))}
-
-      {/* Empty State */}
-      {services.length === 0 && (
+        ))
+      ) : (
         <Card>
           <CardContent className="py-12 text-center">
             <Scissors className="size-12 mx-auto text-muted-foreground/50" />

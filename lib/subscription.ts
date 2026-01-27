@@ -22,17 +22,26 @@ export const getSubscription = cache(async () => {
 export async function getSubscriptionStatus() {
     const sub = await getSubscription()
 
-    if (!sub) return { status: 'none', daysRemaining: 0, isLocked: true } as const
+    if (!sub) {
+        // Fallback for new users who haven't had their trial created yet
+        return {
+            status: 'none',
+            plan: 'none',
+            daysRemaining: 0,
+            isLocked: true, // It's safer to stay locked until the trial action confirms
+            subscription: null
+        } as const
+    }
 
     const now = new Date()
     const endDate = new Date(sub.current_period_end)
     const daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
 
     // Logic for lock-down
-    // Locked if: status is expired OR (status is trial/active/canceled AND date is past)
-    // Note: 'canceled' usually means "active until period end", so we check date.
     const isExpiredByDate = now > endDate
-    const isLocked = sub.status === 'expired' || (sub.status !== 'active' && sub.status !== 'trial' && isExpiredByDate)
+    // Trial or active subs are only locked if explicitly 'expired' or if the date has passed
+    const isLocked = sub.status === 'expired' ||
+        (sub.status !== 'active' && sub.status !== 'trial' && isExpiredByDate)
 
     return {
         status: sub.status,

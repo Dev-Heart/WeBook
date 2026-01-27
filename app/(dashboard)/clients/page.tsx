@@ -1,6 +1,4 @@
-"use client"
-
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { MoreVertical, Phone, Plus, Search, Users, Mail } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -21,96 +19,40 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-
-const clients = [
-  {
-    id: 1,
-    name: "Ama Mensah",
-    initials: "AM",
-    phone: "+233 24 123 4567",
-    email: "ama.m@email.com",
-    totalVisits: 12,
-    lastVisit: "Today",
-    totalSpent: "GH₵ 1,800",
-    status: "regular",
-  },
-  {
-    id: 2,
-    name: "Kwame Asante",
-    initials: "KA",
-    phone: "+233 20 987 6543",
-    email: "kwame.a@email.com",
-    totalVisits: 8,
-    lastVisit: "1 week ago",
-    totalSpent: "GH₵ 280",
-    status: "regular",
-  },
-  {
-    id: 3,
-    name: "Efua Darko",
-    initials: "ED",
-    phone: "+233 27 555 1234",
-    email: "",
-    totalVisits: 1,
-    lastVisit: "Never",
-    totalSpent: "GH₵ 0",
-    status: "new",
-  },
-  {
-    id: 4,
-    name: "Yaw Boateng",
-    initials: "YB",
-    phone: "+233 24 777 8899",
-    email: "yaw.b@email.com",
-    totalVisits: 5,
-    lastVisit: "2 weeks ago",
-    totalSpent: "GH₵ 125",
-    status: "regular",
-  },
-  {
-    id: 5,
-    name: "Adwoa Poku",
-    initials: "AP",
-    phone: "+233 20 111 2222",
-    email: "adwoa.p@email.com",
-    totalVisits: 24,
-    lastVisit: "3 days ago",
-    totalSpent: "GH₵ 3,200",
-    status: "vip",
-  },
-  {
-    id: 6,
-    name: "Kofi Adu",
-    initials: "KA",
-    phone: "+233 24 333 4444",
-    email: "",
-    totalVisits: 3,
-    lastVisit: "1 month ago",
-    totalSpent: "GH₵ 105",
-    status: "regular",
-  },
-  {
-    id: 7,
-    name: "Akua Serwaa",
-    initials: "AS",
-    phone: "+233 20 555 6666",
-    email: "akua.s@email.com",
-    totalVisits: 15,
-    lastVisit: "Yesterday",
-    totalSpent: "GH₵ 2,100",
-    status: "vip",
-  },
-]
-
 import { useSubscription } from "@/components/subscription-provider"
+import { getClients, isDemoMode, DEMO_DATA, getBusinessProfile, type Client } from "@/lib/business-data"
+import { AddClientDialog } from "@/components/add-client-dialog"
 
 export default function ClientsPage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const [clients, setClients] = useState<any[]>([])
+  const [showDemo, setShowDemo] = useState(false)
+  const [profile, setProfile] = useState<any>(null)
   const { isLocked } = useSubscription()
+
+  useEffect(() => {
+    const isDemo = isDemoMode()
+    setShowDemo(isDemo)
+    setClients(isDemo ? DEMO_DATA.clients : getClients())
+    setProfile(getBusinessProfile())
+  }, [])
 
   const filteredClients = clients.filter((client) =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  const currencySymbol = profile?.currency === 'GHS' ? 'GH₵' :
+    profile?.currency === 'NGN' ? '₦' :
+      profile?.currency === 'KES' ? 'KSh' :
+        profile?.currency === 'ZAR' ? 'R' :
+          profile?.currency === 'USD' ? '$' :
+            profile?.currency === 'EUR' ? '€' :
+              profile?.currency === 'GBP' ? '£' :
+                profile?.currency === 'CAD' ? 'C$' :
+                  profile?.currency === 'AUD' ? 'A$' :
+                    profile?.currency === 'JPY' ? '¥' :
+                      profile?.currency === 'CNY' ? '¥' :
+                        profile?.currency === 'INR' ? '₹' : '$'
 
   const statusColors = {
     new: "secondary",
@@ -126,10 +68,7 @@ export default function ClientsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
           <p className="text-muted-foreground">Keep track of your customers</p>
         </div>
-        <Button className="gap-2" disabled={isLocked}>
-          <Plus className="size-4" />
-          Add Client
-        </Button>
+        <AddClientDialog onSuccess={() => setClients(isDemoMode() ? DEMO_DATA.clients : getClients())} />
       </div>
 
       {/* Stats */}
@@ -229,11 +168,11 @@ export default function ClientsPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">{client.totalVisits}</TableCell>
+                    <TableCell className="hidden md:table-cell">{client.totalVisits || client.visits || 0}</TableCell>
                     <TableCell className="hidden lg:table-cell text-muted-foreground">{client.lastVisit}</TableCell>
-                    <TableCell className="hidden md:table-cell font-medium">{client.totalSpent}</TableCell>
+                    <TableCell className="hidden md:table-cell font-medium">{currencySymbol} {client.totalSpent || 0}</TableCell>
                     <TableCell>
-                      <Badge variant={statusColors[client.status]} className="capitalize">
+                      <Badge variant={statusColors[client.status as keyof typeof statusColors] || "outline"} className="capitalize">
                         {client.status}
                       </Badge>
                     </TableCell>
