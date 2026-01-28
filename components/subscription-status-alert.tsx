@@ -38,11 +38,29 @@ export function SubscriptionStatusAlert() {
             <Alert variant="destructive" className="mb-4">
                 <Lock className="h-4 w-4" />
                 <AlertTitle>Account Restricted</AlertTitle>
-                <AlertDescription className="flex items-center justify-between">
+                <AlertDescription className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <span>Your subscription has expired. You are in Read-Only mode.</span>
-                    <Button variant="outline" size="sm" className="h-7 bg-white/10 hover:bg-white/20 border-white/20 ml-4" asChild>
-                        <Link href="/settings/billing">Restore Access</Link>
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="default"
+                            size="sm"
+                            className="h-7 bg-white text-black hover:bg-slate-100"
+                            onClick={async () => {
+                                const { startTrialAction } = await import('@/app/actions')
+                                const res = await startTrialAction()
+                                if (res.success) {
+                                    window.location.reload()
+                                } else {
+                                    alert(res.error || 'Failed to activate trial')
+                                }
+                            }}
+                        >
+                            Activate Trial
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-7 bg-white/10 hover:bg-white/20 border-white/20" asChild>
+                            <Link href="/settings/billing">Billing</Link>
+                        </Button>
+                    </div>
                 </AlertDescription>
             </Alert>
         )

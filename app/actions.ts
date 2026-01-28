@@ -13,17 +13,14 @@ export async function startTrialAction() {
     }
 
     try {
-        const existing = await getSubscription()
-        if (existing) {
-            return { success: true, message: 'Subscription already exists' }
-        }
+        // Use UPSERT to handle existing records (avoid unique constraint errors)
+        const trialResult = await createTrialSubscription(user.id)
 
-        await createTrialSubscription(user.id)
         revalidatePath('/')
         return { success: true }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to start trial:', error)
-        return { success: false, error: 'Failed to create trial subscription' }
+        return { success: false, error: error.message || 'Failed to create trial subscription' }
     }
 }
 
@@ -112,8 +109,11 @@ export async function completeOnboardingAction(payload: {
 
         if (availError) throw availError
 
-        // 4. Start Trial
-        await startTrialAction()
+        // 4. Start Trial - MUST be successful
+        const trialResult = await startTrialAction()
+        if (!trialResult.success) {
+            throw new Error(trialResult.error || 'Failed to start trial')
+        }
 
         revalidatePath('/')
         return { success: true }

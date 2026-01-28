@@ -94,8 +94,8 @@ export function OnboardingWizard() {
       profile: profile as BusinessProfile,
       services: services.map(s => ({
         name: s.name,
-        price: s.price,
-        duration: s.duration,
+        price: Number(s.price),
+        duration: Number(s.duration),
       })),
       preferences: {
         taxMode: preferences.taxMode,
@@ -105,9 +105,12 @@ export function OnboardingWizard() {
       }
     }
 
+    console.log('[Onboarding] Submitting payload:', payload)
+
     toast.promise(completeOnboardingAction(payload), {
       loading: 'Setting up your business and initializing trial...',
       success: (res: any) => {
+        console.log('[Onboarding] Success response:', res)
         if (!res.success) throw new Error(res.error)
         saveOnboardingData({
           completed: true,
@@ -116,12 +119,13 @@ export function OnboardingWizard() {
           preferences,
           isDemoMode: false
         })
+        console.log('[Onboarding] Redirecting to /')
         window.location.href = '/'
         return 'Success! Redirecting to dashboard...'
       },
       error: (err) => {
-        console.error('Failed to complete onboarding:', err)
-        return 'Setup failed. Please try again.'
+        console.error('[Onboarding] Error:', err)
+        return 'Setup failed: ' + (err.message || 'Please try again.')
       }
     })
   }

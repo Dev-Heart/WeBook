@@ -52,25 +52,34 @@ export async function getSubscriptionStatus() {
     }
 }
 
+import { createAdminClient } from '@/lib/supabase/admin'
+
 export async function createTrialSubscription(userId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     const startDate = new Date()
     const endDate = new Date()
     endDate.setDate(endDate.getDate() + TRIAL_DAYS)
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('subscriptions')
-        .insert({
+        .upsert({
             user_id: userId,
             status: 'trial',
             plan: 'free_trial',
             current_period_start: startDate.toISOString(),
             current_period_end: endDate.toISOString(),
+            updated_at: new Date().toISOString()
+        }, {
+            onConflict: 'user_id'
         })
+        .select()
+        .single()
 
     if (error) {
-        console.error('Error creating trial subscription:', error)
+        console.error('Error in createTrialSubscription:', error)
         throw error
     }
+
+    return data
 }
