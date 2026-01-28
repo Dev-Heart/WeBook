@@ -10,6 +10,7 @@ import { getBusinessProfile, isDemoMode, DEMO_DATA } from '@/lib/business-data'
 import { createClient } from '@/lib/supabase/client'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { ShareBookingDialog } from '@/components/share-booking-dialog'
 import { AddClientDialog } from '@/components/add-client-dialog'
 import { AddServiceDialog } from '@/components/add-service-dialog'
 import { AddIncomeDialog } from '@/components/add-income-dialog'
@@ -199,6 +200,10 @@ export default function DashboardPage() {
           <DollarSign className="size-4" />
           Record Income
         </Button>
+        <ShareBookingDialog
+          userId={userId || ''}
+          businessName={profile?.name || 'My Business'}
+        />
       </div>
 
       {/* Dialogs */}

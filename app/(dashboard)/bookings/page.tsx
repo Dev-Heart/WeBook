@@ -14,9 +14,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Calendar, Search, MoreVertical, Check, X, Clock, Loader2, Plus, Bell } from 'lucide-react'
+import { Calendar, Search, MoreVertical, Check, X, Clock, Loader2, Plus, Bell, Share2 } from 'lucide-react'
 import { toast } from "sonner"
 import { createClient } from '@/lib/supabase/client'
+import { ShareBookingDialog } from "@/components/share-booking-dialog"
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 interface Booking {
@@ -41,6 +42,7 @@ export default function BookingsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [businessName, setBusinessName] = useState('My Business')
   const supabase = createClient()
   const { isLocked } = useSubscription()
 
@@ -69,6 +71,17 @@ export default function BookingsPage() {
       if (error) throw error
 
       setBookings(data || [])
+
+      // Also load business name
+      const { data: profile } = await supabase
+        .from('business_profiles')
+        .select('business_name')
+        .eq('user_id', user.id)
+        .single()
+
+      if (profile?.business_name) {
+        setBusinessName(profile.business_name)
+      }
     } catch (error) {
       console.error('[v0] Error loading bookings:', error)
     } finally {
@@ -250,16 +263,14 @@ export default function BookingsPage() {
         </div>
         {isLocked ? (
           <Button className="gap-2" disabled>
-            <Plus className="size-4" />
+            <Share2 className="size-4" />
             Share Booking Link
           </Button>
         ) : (
-          <Button className="gap-2" asChild>
-            <a href={`/book?u=${userId || ''}`} target="_blank">
-              <Plus className="size-4" />
-              Share Booking Link
-            </a>
-          </Button>
+          <ShareBookingDialog
+            userId={userId || ''}
+            businessName={businessName}
+          />
         )}
       </div>
 

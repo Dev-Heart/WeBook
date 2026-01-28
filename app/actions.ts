@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createTrialSubscription, getSubscription, TRIAL_DAYS } from '@/lib/subscription'
 import { revalidatePath } from 'next/cache'
 
@@ -158,7 +159,8 @@ export async function createBooking(payload: {
     notes: string | null
     price?: number
 }) {
-    const supabase = await createClient()
+    // Use Admin Client for database persistence to bypass RLS for public submissions
+    const supabase = createAdminClient()
 
     try {
         // 1. Create booking
@@ -235,6 +237,8 @@ export async function createBooking(payload: {
             time: payload.time
         })
 
+        revalidatePath('/')
+        revalidatePath('/bookings')
         return { success: true }
     } catch (error) {
         console.error('Create booking failed:', error)
