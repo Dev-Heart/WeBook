@@ -1,16 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Bell, Globe, Lock, MapPin, Phone, User } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Bell, Globe, Lock, MapPin, Phone, User, Loader2 } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
 import {
   Select,
   SelectContent,
@@ -18,21 +16,76 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { getBusinessProfile, isDemoMode } from "@/lib/business-data"
+import { createClient } from "@/lib/supabase/client"
+import { updateBusinessProfileAction } from "@/app/actions"
+import { toast } from "sonner"
 
 export default function SettingsPage() {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [profile, setProfile] = useState<any>(null)
+  const [formData, setFormData] = useState<any>({})
 
   useEffect(() => {
-    setProfile(getBusinessProfile())
+    async function loadProfile() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data } = await supabase
+          .from('business_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single()
+
+        if (data) {
+          setProfile(data)
+          setFormData({
+            business_name: data.business_name || '',
+            business_type: data.business_type || '',
+            contact_phone: data.contact_phone || '',
+            contact_email: data.contact_email || '',
+            location_name: data.location_name || '',
+            location_address: data.location_address || '',
+            currency_display: data.currency_display || 'ghs',
+            tax_mode: data.tax_mode || 'inclusive',
+            whatsapp_notifications: data.whatsapp_notifications ?? true,
+            booking_confirmation_required: data.booking_confirmation_required ?? true,
+            soft_reminders: data.soft_reminders ?? true,
+          })
+        }
+      }
+      setLoading(false)
+    }
+    loadProfile()
   }, [])
 
-  const businessName = profile?.name || (isDemoMode() ? "Demo Business" : "My Business")
-  const initials = businessName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+  const handleSave = async (sectionData?: any) => {
+    setSaving(true)
+    const dataToSave = sectionData || formData
+
+    const result = await updateBusinessProfileAction(dataToSave)
+
+    if (result.success) {
+      toast.success('Settings updated successfully')
+      setProfile({ ...profile, ...dataToSave })
+    } else {
+      toast.error(result.error || 'Failed to update settings')
+    }
+    setSaving(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  const initials = (formData.business_name || "My Business").split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-3xl">
-      {/* Page Header */}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-muted-foreground">Manage your account and preferences</p>
@@ -60,26 +113,28 @@ export default function SettingsPage() {
 
           <div className="space-y-2">
             <Label htmlFor="businessName">Business Name</Label>
-            <Input id="businessName" defaultValue={businessName} />
+            <Input
+              id="businessName"
+              value={formData.business_name}
+              onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="businessType">Business Type</Label>
-            <Input id="businessType" defaultValue={profile?.type || "Professional"} />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="bio">About Your Business</Label>
-            <Textarea
-              id="bio"
-              placeholder="Tell clients about yourself and your services..."
-              defaultValue={profile?.bio || ""}
-              rows={3}
+            <Input
+              id="businessType"
+              value={formData.business_type}
+              onChange={(e) => setFormData({ ...formData, business_type: e.target.value })}
             />
           </div>
-
-          <Button>Save Changes</Button>
         </CardContent>
+        <CardFooter>
+          <Button onClick={() => handleSave()} disabled={saving}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </CardFooter>
       </Card>
 
       {/* Contact Section */}
@@ -94,16 +149,30 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="phone">Phone Number</Label>
-            <Input id="phone" type="tel" defaultValue={profile?.phone || ""} />
+            <Input
+              id="phone"
+              type="tel"
+              value={formData.contact_phone}
+              onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
-            <Input id="email" type="email" defaultValue={profile?.email || ""} />
+            <Input
+              id="email"
+              type="email"
+              value={formData.contact_email}
+              onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+            />
           </div>
-
-          <Button>Save Changes</Button>
         </CardContent>
+        <CardFooter>
+          <Button onClick={() => handleSave()} disabled={saving}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </CardFooter>
       </Card>
 
       {/* Location Section */}
@@ -117,70 +186,33 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="address">Business Address</Label>
-            <Textarea
-              id="address"
-              placeholder="Enter your business address..."
-              defaultValue="123 Oxford Street, Osu, Accra"
-              rows={2}
+            <Label htmlFor="city">City</Label>
+            <Input
+              id="city"
+              value={formData.location_name}
+              onChange={(e) => setFormData({ ...formData, location_name: e.target.value })}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="city">City</Label>
-            <Input id="city" defaultValue="Accra" />
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
-              <p className="font-medium">Mobile Service</p>
-              <p className="text-sm text-muted-foreground">I can travel to clients</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-
-          <Button>Save Changes</Button>
-        </CardContent>
-      </Card >
-
-      {/* Notifications Section */}
-      < Card >
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="size-5" />
-            Notifications
-          </CardTitle>
-          <CardDescription>How you want to be notified</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
-              <p className="font-medium">New Booking Alerts</p>
-              <p className="text-sm text-muted-foreground">Get notified when someone books</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
-              <p className="font-medium">Booking Reminders</p>
-              <p className="text-sm text-muted-foreground">Remind me of upcoming appointments</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
-              <p className="font-medium">Marketing Messages</p>
-              <p className="text-sm text-muted-foreground">Tips and updates from Hustle</p>
-            </div>
-            <Switch />
+            <Label htmlFor="address">Address / Country</Label>
+            <Input
+              id="address"
+              value={formData.location_address}
+              onChange={(e) => setFormData({ ...formData, location_address: e.target.value })}
+            />
           </div>
         </CardContent>
-      </Card >
+        <CardFooter>
+          <Button onClick={() => handleSave()} disabled={saving}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </CardFooter>
+      </Card>
 
       {/* Preferences Section */}
-      < Card >
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Globe className="size-5" />
@@ -191,23 +223,21 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="currency">Currency</Label>
-            <Select defaultValue={profile?.currency?.toLowerCase() || "ghs"}>
+            <Select
+              value={formData.currency_display}
+              onValueChange={(val) => setFormData({ ...formData, currency_display: val })}
+            >
               <SelectTrigger id="currency">
                 <SelectValue placeholder="Select currency" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ghs">GHS - Ghana Cedi (GH₵)</SelectItem>
+                <SelectItem value="zar">ZAR - South African Rand (R)</SelectItem>
                 <SelectItem value="ngn">NGN - Nigerian Naira (₦)</SelectItem>
                 <SelectItem value="kes">KES - Kenyan Shilling (KSh)</SelectItem>
-                <SelectItem value="zar">ZAR - South African Rand (R)</SelectItem>
                 <SelectItem value="usd">USD - US Dollar ($)</SelectItem>
                 <SelectItem value="eur">EUR - Euro (€)</SelectItem>
                 <SelectItem value="gbp">GBP - Pound Sterling (£)</SelectItem>
-                <SelectItem value="cad">CAD - Canadian Dollar (CA$)</SelectItem>
-                <SelectItem value="aud">AUD - Australian Dollar (A$)</SelectItem>
-                <SelectItem value="jpy">JPY - Japanese Yen (¥)</SelectItem>
-                <SelectItem value="cny">CNY - Chinese Yuan (¥)</SelectItem>
-                <SelectItem value="inr">INR - Indian Rupee (₹)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -217,7 +247,10 @@ export default function SettingsPage() {
               <p className="font-medium">Tax Mode</p>
               <p className="text-sm text-muted-foreground">Show prices with tax inclusive or exclusive</p>
             </div>
-            <Select defaultValue="inclusive">
+            <Select
+              value={formData.tax_mode}
+              onValueChange={(val: any) => setFormData({ ...formData, tax_mode: val })}
+            >
               <SelectTrigger className="w-[140px]">
                 <SelectValue />
               </SelectTrigger>
@@ -231,80 +264,34 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <p className="font-medium">WhatsApp Notifications</p>
-              <p className="text-sm text-muted-foreground">Get booking updates via WhatsApp</p>
             </div>
-            <Switch defaultChecked />
+            <Switch
+              checked={formData.whatsapp_notifications}
+              onCheckedChange={(val) => setFormData({ ...formData, whatsapp_notifications: val })}
+            />
           </div>
 
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <p className="font-medium">Booking Confirmation</p>
-              <p className="text-sm text-muted-foreground">Require you to confirm all bookings</p>
             </div>
-            <Switch defaultChecked />
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
-              <p className="font-medium">Soft Reminders</p>
-              <p className="text-sm text-muted-foreground">Get notified about incomplete bookings</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="language">Language</Label>
-            <Select defaultValue="en">
-              <SelectTrigger id="language">
-                <SelectValue placeholder="Select language" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="fr">French</SelectItem>
-                <SelectItem value="tw">Twi</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button>Save Changes</Button>
-        </CardContent>
-      </Card >
-
-      {/* Account Section */}
-      < Card >
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lock className="size-5" />
-            Account
-          </CardTitle>
-          <CardDescription>Security and account settings</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
-              <p className="font-medium">Change Password</p>
-              <p className="text-sm text-muted-foreground">Update your account password</p>
-            </div>
-            <Button variant="outline" size="sm">Change</Button>
-          </div>
-
-          <Separator />
-
-          <div className="flex items-center justify-between rounded-lg border border-destructive/20 p-4">
-            <div className="space-y-0.5">
-              <p className="font-medium text-destructive">Delete Account</p>
-              <p className="text-sm text-muted-foreground">Permanently remove your account and data</p>
-            </div>
-            <Button variant="destructive" size="sm">Delete</Button>
+            <Switch
+              checked={formData.booking_confirmation_required}
+              onCheckedChange={(val) => setFormData({ ...formData, booking_confirmation_required: val })}
+            />
           </div>
         </CardContent>
-      </Card >
+        <CardFooter>
+          <Button onClick={() => handleSave()} disabled={saving}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </CardFooter>
+      </Card>
 
-      {/* App Info */}
-      < div className="text-center text-sm text-muted-foreground py-6" >
+      <div className="text-center text-sm text-muted-foreground py-6">
         <p>WeBook v1.0.0</p>
-        <p className="mt-1">Made with care for African entrepreneurs</p>
-      </div >
-    </div >
+      </div>
+    </div>
   )
 }

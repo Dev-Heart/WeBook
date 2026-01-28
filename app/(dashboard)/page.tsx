@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Calendar, CheckCircle, Clock, DollarSign, TrendingUp } from 'lucide-react'
+import { Calendar, CheckCircle, Clock, DollarSign, Plus, TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -24,11 +24,36 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function load() {
-      const sup = createClient() // Need to import this or use a prop
+      const sup = createClient()
       const { data: { user } } = await sup.auth.getUser()
       setUserId(user?.id || null)
-      setProfile(getBusinessProfile())
-      setShowDemo(isDemoMode())
+
+      if (user) {
+        // Fetch real profile from DB
+        const { data: dbProfile } = await sup
+          .from('business_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single()
+
+        if (dbProfile) {
+          setProfile({
+            name: dbProfile.business_name,
+            type: dbProfile.business_type,
+            city: dbProfile.location_name,
+            country: dbProfile.location_address,
+            currency: dbProfile.currency_display,
+            phone: dbProfile.contact_phone
+          })
+          setShowDemo(false)
+        } else {
+          setProfile(getBusinessProfile())
+          setShowDemo(isDemoMode())
+        }
+      } else {
+        setProfile(getBusinessProfile())
+        setShowDemo(isDemoMode())
+      }
       setMounted(true)
     }
     load()
@@ -39,13 +64,13 @@ export default function DashboardPage() {
 
   if (!mounted) return null
 
-  const currencySymbol = profile?.currency === 'GHS' ? 'GH₵' :
-    profile?.currency === 'NGN' ? '₦' :
-      profile?.currency === 'KES' ? 'KSh' :
-        profile?.currency === 'ZAR' ? 'R' :
-          profile?.currency === 'USD' ? '$' :
-            profile?.currency === 'EUR' ? '€' :
-              profile?.currency === 'GBP' ? '£' : 'GH₵'
+  const currencySymbol = profile?.currency === 'ZAR' || profile?.currency === 'zar' ? 'R' :
+    profile?.currency === 'GHS' || profile?.currency === 'ghs' ? 'GH₵' :
+      profile?.currency === 'NGN' || profile?.currency === 'ngn' ? '₦' :
+        profile?.currency === 'KES' || profile?.currency === 'kes' ? 'KSh' :
+          profile?.currency === 'USD' || profile?.currency === 'usd' ? '$' :
+            profile?.currency === 'EUR' || profile?.currency === 'eur' ? '€' :
+              profile?.currency === 'GBP' || profile?.currency === 'gbp' ? '£' : 'GH₵'
 
   const stats = showDemo
     ? [
@@ -167,7 +192,7 @@ export default function DashboardPage() {
           </a>
         </Button>
         <Button variant="outline" className="gap-2" onClick={() => setIsClientDialogOpen(true)}>
-          <CheckCircle className="size-4" />
+          <Plus className="size-4" />
           Add Client
         </Button>
         <Button variant="outline" className="gap-2" onClick={() => setIsIncomeDialogOpen(true)}>

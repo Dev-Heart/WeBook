@@ -11,7 +11,7 @@ SET date = booking_date::text,
     time = booking_time::text 
 WHERE date IS NULL;
 
--- 2. Fix Availability Settings (Add missing JSONB columns)
+-- 2. Fix Availability Settings (Add missing JSONB columns and fix legacy constraints)
 ALTER TABLE public.availability_settings ADD COLUMN IF NOT EXISTS monday JSONB;
 ALTER TABLE public.availability_settings ADD COLUMN IF NOT EXISTS tuesday JSONB;
 ALTER TABLE public.availability_settings ADD COLUMN IF NOT EXISTS wednesday JSONB;
@@ -22,6 +22,19 @@ ALTER TABLE public.availability_settings ADD COLUMN IF NOT EXISTS sunday JSONB;
 ALTER TABLE public.availability_settings ADD COLUMN IF NOT EXISTS slot_duration INTEGER DEFAULT 30;
 ALTER TABLE public.availability_settings ADD COLUMN IF NOT EXISTS buffer_time INTEGER DEFAULT 0;
 ALTER TABLE public.availability_settings ADD COLUMN IF NOT EXISTS advance_booking_days INTEGER DEFAULT 30;
+
+-- FIX CONSTRAINT ERROR: Make legacy columns nullable since we now use JSONB
+ALTER TABLE public.availability_settings ALTER COLUMN day_of_week DROP NOT NULL;
+ALTER TABLE public.availability_settings ALTER COLUMN start_time DROP NOT NULL;
+ALTER TABLE public.availability_settings ALTER COLUMN end_time DROP NOT NULL;
+
+-- Drop the unique constraint on day_of_week if it exists
+DO $$ 
+BEGIN 
+    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'availability_settings_user_id_day_of_week_key') THEN
+        ALTER TABLE public.availability_settings DROP CONSTRAINT availability_settings_user_id_day_of_week_key;
+    END IF;
+END $$;
 
 -- 3. Ensure the Subscriptions Table has all required columns
 ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'free_trial';

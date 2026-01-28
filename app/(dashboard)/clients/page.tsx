@@ -22,8 +22,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useSubscription } from "@/components/subscription-provider"
-import { getClients, isDemoMode, DEMO_DATA, getBusinessProfile, type Client } from "@/lib/business-data"
+import { isDemoMode, DEMO_DATA, getBusinessProfile, type Client } from "@/lib/business-data"
 import { AddClientDialog } from "@/components/add-client-dialog"
+import { createClient } from "@/lib/supabase/client"
 
 export default function ClientsPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -32,29 +33,62 @@ export default function ClientsPage() {
   const [profile, setProfile] = useState<any>(null)
   const { isLocked } = useSubscription()
 
-  useEffect(() => {
+  const fetchClients = async () => {
     const isDemo = isDemoMode()
     setShowDemo(isDemo)
-    setClients(isDemo ? DEMO_DATA.clients : getClients())
-    setProfile(getBusinessProfile())
+
+    if (isDemo) {
+      setClients(DEMO_DATA.clients)
+      return
+    }
+
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name')
+
+      if (data) {
+        setClients(data.map(c => ({
+          ...c,
+          initials: c.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+        })))
+      }
+    }
+  }
+
+  const fetchProfile = async () => {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data } = await supabase
+        .from('business_profiles')
+        .select('currency_display')
+        .eq('user_id', user.id)
+        .single()
+      if (data) setProfile({ currency: data.currency_display })
+    }
+  }
+
+  useEffect(() => {
+    fetchClients()
+    fetchProfile()
   }, [])
 
   const filteredClients = clients.filter((client) =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const currencySymbol = profile?.currency === 'GHS' ? 'GH₵' :
-    profile?.currency === 'NGN' ? '₦' :
-      profile?.currency === 'KES' ? 'KSh' :
-        profile?.currency === 'ZAR' ? 'R' :
-          profile?.currency === 'USD' ? '$' :
-            profile?.currency === 'EUR' ? '€' :
-              profile?.currency === 'GBP' ? '£' :
-                profile?.currency === 'CAD' ? 'C$' :
-                  profile?.currency === 'AUD' ? 'A$' :
-                    profile?.currency === 'JPY' ? '¥' :
-                      profile?.currency === 'CNY' ? '¥' :
-                        profile?.currency === 'INR' ? '₹' : '$'
+  const currencySymbol = profile?.currency === 'zar' || profile?.currency === 'ZAR' ? 'R' :
+    profile?.currency === 'ghs' || profile?.currency === 'GHS' ? 'GH₵' :
+      profile?.currency === 'ngn' || profile?.currency === 'NGN' ? '₦' :
+        profile?.currency === 'kes' || profile?.currency === 'KES' ? 'KSh' :
+          profile?.currency === 'usd' || profile?.currency === 'USD' ? '$' :
+            profile?.currency === 'eur' || profile?.currency === 'EUR' ? '€' :
+              profile?.currency === 'gbp' || profile?.currency === 'GBP' ? '£' : 'GH₵'
 
   const statusColors = {
     new: "secondary",
@@ -70,7 +104,7 @@ export default function ClientsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
           <p className="text-muted-foreground">Keep track of your customers</p>
         </div>
-        <AddClientDialog onSuccess={() => setClients(isDemoMode() ? DEMO_DATA.clients : getClients())} />
+        <AddClientDialog onSuccess={fetchClients} />
       </div>
 
       {/* Stats */}

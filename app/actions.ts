@@ -364,5 +364,42 @@ export async function getSubscriptionStatusAction() {
         subscription: sub
     }
 }
+export async function updateBusinessProfileAction(payload: {
+    business_name?: string;
+    business_type?: string;
+    contact_phone?: string;
+    contact_email?: string;
+    location_name?: string;
+    location_address?: string;
+    currency_display?: string;
+    tax_mode?: 'inclusive' | 'exclusive';
+    whatsapp_notifications?: boolean;
+    booking_confirmation_required?: boolean;
+    soft_reminders?: boolean;
+}) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
+    if (!user) {
+        return { success: false, error: 'User not authenticated' }
+    }
 
+    try {
+        const { error } = await supabase
+            .from('business_profiles')
+            .upsert({
+                user_id: user.id,
+                ...payload,
+                updated_at: new Date().toISOString(),
+            })
+
+        if (error) throw error
+
+        revalidatePath('/settings')
+        revalidatePath('/')
+        return { success: true }
+    } catch (error: any) {
+        console.error('Failed to update business profile:', error)
+        return { success: false, error: error.message || 'Failed to update settings' }
+    }
+}

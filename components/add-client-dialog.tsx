@@ -55,14 +55,6 @@ export function AddClientDialog({
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            {!externalOpen && (
-                <DialogTrigger asChild>
-                    <Button className="gap-2">
-                        <Plus className="size-4" />
-                        Add Client
-                    </Button>
-                </DialogTrigger>
-            )}
             <DialogContent className="sm:max-w-[425px]">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
