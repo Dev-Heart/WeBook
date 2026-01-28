@@ -20,11 +20,22 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const checkStatus = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      const complete = isOnboardingComplete()
+
+      let complete = false
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('business_profiles')
+          .select('onboarding_completed')
+          .eq('user_id', session.user.id)
+          .single()
+
+        complete = profile?.onboarding_completed || false
+      }
+
       const demo = isDemoMode()
 
       setIsAuthenticated(!!session || demo)
-      setIsComplete(complete)
+      setIsComplete(complete || demo)
       setLoading(false)
 
       const isPublicPath = pathname === '/welcome' || pathname.startsWith('/auth') || pathname.startsWith('/book')

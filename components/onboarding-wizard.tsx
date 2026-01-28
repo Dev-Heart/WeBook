@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress'
 import { Sparkles, Building2, Package, Settings, CheckCircle, Plus, X } from 'lucide-react'
 import { saveOnboardingData, type BusinessProfile, type Service, type Preferences, DEMO_DATA } from '@/lib/business-data'
 import { toast } from 'sonner'
-import { startTrialAction } from '@/app/actions'
+import { startTrialAction, completeOnboardingAction } from '@/app/actions'
 
 const BUSINESS_TYPES = [
   'Barber',
@@ -78,40 +78,52 @@ export function OnboardingWizard() {
   }
 
   const handleFinish = async (isDemoMode: boolean) => {
-    const onboardingData = {
-      completed: true,
-      profile: profile as BusinessProfile,
-      services: services.map((s, i) => ({
-        ...s,
-        id: `service-${i + 1}`,
-        active: true,
-      })),
-      preferences,
-      isDemoMode,
-    }
-
-    saveOnboardingData(onboardingData)
-
-    // Attempt to start server-side trial if user is authenticated
-    if (!isDemoMode) {
-      toast.promise(startTrialAction(), {
-        loading: 'Initializing your 30-day free trial...',
-        success: () => {
-          // Force a hard navigation to ensure the OnboardingGate re-renders correctly
-          window.location.href = '/'
-          return 'Success! Redirecting to dashboard...'
-        },
-        error: (err) => {
-          console.error('Failed to start trial:', err)
-          // Still redirect, but maybe show a warning
-          window.location.href = '/'
-          return 'Proceeding to dashboard...'
-        }
+    if (isDemoMode) {
+      saveOnboardingData({
+        completed: true,
+        profile: profile as BusinessProfile,
+        services: services.map((s, i) => ({ ...s, id: `service-${i + 1}`, active: true })),
+        preferences,
+        isDemoMode: true
       })
-    } else {
-      // Demo mode redirect
       window.location.href = '/'
+      return
     }
+
+    const payload = {
+      profile: profile as BusinessProfile,
+      services: services.map(s => ({
+        name: s.name,
+        price: s.price,
+        duration: s.duration,
+      })),
+      preferences: {
+        taxMode: preferences.taxMode,
+        whatsappNotifications: preferences.whatsappNotifications,
+        bookingConfirmationRequired: preferences.bookingConfirmationRequired,
+        softReminders: preferences.softReminders,
+      }
+    }
+
+    toast.promise(completeOnboardingAction(payload), {
+      loading: 'Setting up your business and initializing trial...',
+      success: (res: any) => {
+        if (!res.success) throw new Error(res.error)
+        saveOnboardingData({
+          completed: true,
+          profile: profile as BusinessProfile,
+          services: services.map((s, i) => ({ ...s, id: `service-${i + 1}`, active: true })),
+          preferences,
+          isDemoMode: false
+        })
+        window.location.href = '/'
+        return 'Success! Redirecting to dashboard...'
+      },
+      error: (err) => {
+        console.error('Failed to complete onboarding:', err)
+        return 'Setup failed. Please try again.'
+      }
+    })
   }
 
   return (

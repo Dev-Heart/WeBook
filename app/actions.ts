@@ -27,6 +27,103 @@ export async function startTrialAction() {
     }
 }
 
+export async function completeOnboardingAction(payload: {
+    profile: {
+        name: string;
+        type: string;
+        city: string;
+        country: string;
+        currency: string;
+        phone?: string;
+    },
+    services: {
+        name: string;
+        price: number;
+        duration: number;
+        category?: string;
+    }[],
+    preferences: {
+        taxMode: 'inclusive' | 'exclusive';
+        whatsappNotifications: boolean;
+        bookingConfirmationRequired: boolean;
+        softReminders: boolean;
+    }
+}) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+        return { success: false, error: 'User not authenticated' }
+    }
+
+    try {
+        // 1. Create Business Profile
+        const { error: profileError } = await supabase
+            .from('business_profiles')
+            .upsert({
+                user_id: user.id,
+                business_name: payload.profile.name,
+                business_type: payload.profile.type,
+                location_name: payload.profile.city,
+                location_address: payload.profile.country,
+                currency_display: payload.profile.currency,
+                contact_phone: payload.profile.phone || '',
+                tax_mode: payload.preferences.taxMode,
+                whatsapp_notifications: payload.preferences.whatsappNotifications,
+                booking_confirmation_required: payload.preferences.bookingConfirmationRequired,
+                soft_reminders: payload.preferences.softReminders,
+                onboarding_completed: true,
+            })
+
+        if (profileError) throw profileError
+
+        // 2. Create Services
+        if (payload.services.length > 0) {
+            const { error: servicesError } = await supabase
+                .from('services')
+                .insert(payload.services.map(s => ({
+                    user_id: user.id,
+                    name: s.name,
+                    price: s.price,
+                    duration: s.duration,
+                    category: s.category || 'General',
+                    active: true,
+                })))
+
+            if (servicesError) throw servicesError
+        }
+
+        // 3. Initialize default availability settings
+        const { error: availError } = await supabase
+            .from('availability_settings')
+            .upsert({
+                user_id: user.id,
+                monday: { enabled: true, start: '09:00', end: '17:00' },
+                tuesday: { enabled: true, start: '09:00', end: '17:00' },
+                wednesday: { enabled: true, start: '09:00', end: '17:00' },
+                thursday: { enabled: true, start: '09:00', end: '17:00' },
+                friday: { enabled: true, start: '09:00', end: '17:00' },
+                saturday: { enabled: false, start: '09:00', end: '17:00' },
+                sunday: { enabled: false, start: '09:00', end: '17:00' },
+                slot_duration: 30,
+                buffer_time: 0,
+                advance_booking_days: 30,
+            })
+
+        if (availError) throw availError
+
+        // 4. Start Trial
+        await startTrialAction()
+
+        revalidatePath('/')
+        return { success: true }
+
+    } catch (error) {
+        console.error('Onboarding failed:', error)
+        return { success: false, error: 'Failed to complete onboarding' }
+    }
+}
+
 export async function checkBookingAvailability(userId: string) {
     const supabase = await createClient()
 
@@ -76,6 +173,8 @@ export async function createBooking(payload: {
                 client_email: payload.clientEmail,
                 date: payload.date,
                 time: payload.time,
+                booking_date: payload.date, // Legacy support
+                booking_time: payload.time, // Legacy support
                 notes: payload.notes,
                 status: 'scheduled',
             })
@@ -266,4 +365,4 @@ export async function getSubscriptionStatusAction() {
     }
 }
 
- 
+
