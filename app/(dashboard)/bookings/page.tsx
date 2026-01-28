@@ -255,7 +255,7 @@ export default function BookingsPage() {
           </Button>
         ) : (
           <Button className="gap-2" asChild>
-            <a href={`/book?u=${bookings[0]?.user_id || ''}`} target="_blank">
+            <a href={`/book?u=${userId || ''}`} target="_blank">
               <Plus className="size-4" />
               Share Booking Link
             </a>
@@ -297,9 +297,9 @@ export default function BookingsPage() {
                     : 'Share your booking link with clients so they can schedule appointments.'
                   }
                 </p>
-                {!searchQuery && (
+                {!searchQuery && userId && (
                   <Button className="gap-2" asChild>
-                    <a href={`/book?u=${userId || ''}`} target="_blank">
+                    <a href={`/book?u=${userId}`} target="_blank">
                       <Plus className="size-4" />
                       Open Booking Page
                     </a>

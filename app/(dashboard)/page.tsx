@@ -174,21 +174,22 @@ export default function DashboardPage() {
           <DollarSign className="size-4" />
           Record Income
         </Button>
-
-        <AddClientDialog
-          open={isClientDialogOpen}
-          onOpenChange={setIsClientDialogOpen}
-          onSuccess={() => {
-            // Dashboard doesn't show clients list directly, but we could refresh stats
-            setProfile(getBusinessProfile())
-          }}
-        />
-        <AddIncomeDialog
-          open={isIncomeDialogOpen}
-          onOpenChange={setIsIncomeDialogOpen}
-          onSuccess={() => setProfile(getBusinessProfile())}
-        />
       </div>
+
+      {/* Dialogs */}
+      <AddClientDialog
+        open={isClientDialogOpen}
+        onOpenChange={setIsClientDialogOpen}
+        onSuccess={() => {
+          // Dashboard doesn't show clients list directly, but we could refresh stats
+          setProfile(getBusinessProfile())
+        }}
+      />
+      <AddIncomeDialog
+        open={isIncomeDialogOpen}
+        onOpenChange={setIsIncomeDialogOpen}
+        onSuccess={() => setProfile(getBusinessProfile())}
+      />
 
       {/* Stats Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
