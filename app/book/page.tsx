@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar as CalendarIcon, Clock, CheckCircle2, Loader2 } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock, CheckCircle2, Loader2, MapPin, Sparkles, ChevronLeft } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface Service {
   id: string
@@ -267,7 +268,7 @@ export default function BookingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
@@ -275,8 +276,8 @@ export default function BookingPage() {
 
   if (isUnavailable) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md text-center shadow-lg border-none">
           <CardHeader>
             <div className="mx-auto mb-4 w-16 h-16 bg-muted rounded-full flex items-center justify-center">
               <Clock className="w-8 h-8 text-muted-foreground" />
@@ -293,8 +294,8 @@ export default function BookingPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-lg border-none">
           <CardHeader>
             <CardTitle>Business Not Found</CardTitle>
             <CardDescription>This booking page is not available yet.</CardDescription>
@@ -306,34 +307,35 @@ export default function BookingPage() {
 
   if (step === 'success') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md text-center shadow-lg border-none animate-in fade-in zoom-in duration-300">
+          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-cyan-500" />
           <CardHeader>
-            <div className="mx-auto mb-4 w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-              <CheckCircle2 className="w-8 h-8 text-primary" />
+            <div className="mx-auto mb-6 w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center shadow-inner">
+              <CheckCircle2 className="w-10 h-10 text-emerald-600" />
             </div>
-            <CardTitle className="text-2xl">Booking Confirmed!</CardTitle>
-            <CardDescription className="text-base mt-2">
-              We'll send you a confirmation message at {clientPhone}.
+            <CardTitle className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-cyan-600">Booking Confirmed!</CardTitle>
+            <CardDescription className="text-base mt-2 max-w-xs mx-auto">
+              We'll see you soon! A confirmation has been sent to your phone.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="bg-muted rounded-lg p-4 space-y-2 text-sm text-left mb-6">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Service:</span>
-                <span className="font-medium">{selectedService?.name}</span>
+            <div className="bg-slate-50 rounded-xl p-6 space-y-3 text-sm text-left mb-6 border border-slate-100 shadow-sm">
+              <div className="flex justify-between items-center py-1 border-b border-slate-100 pb-2">
+                <span className="text-muted-foreground">Service</span>
+                <span className="font-semibold text-foreground">{selectedService?.name}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Date:</span>
-                <span className="font-medium">{selectedDate?.toLocaleDateString()}</span>
+              <div className="flex justify-between items-center py-1 border-b border-slate-100 pb-2">
+                <span className="text-muted-foreground">Date</span>
+                <span className="font-medium text-foreground">{selectedDate?.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Time:</span>
-                <span className="font-medium">{formatTime(selectedTime)}</span>
+              <div className="flex justify-between items-center py-1 border-b border-slate-100 pb-2">
+                <span className="text-muted-foreground">Time</span>
+                <span className="font-medium text-foreground">{formatTime(selectedTime)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Price:</span>
-                <span className="font-medium">{profile.currency} {selectedService?.price}</span>
+              <div className="flex justify-between items-center pt-2">
+                <span className="text-muted-foreground font-medium">Total Price</span>
+                <span className="font-bold text-lg text-primary">{profile.currency} {selectedService?.price}</span>
               </div>
             </div>
             <Button
@@ -347,8 +349,7 @@ export default function BookingPage() {
                 setClientEmail('')
                 setNotes('')
               }}
-              variant="outline"
-              className="w-full"
+              className="w-full h-12 text-base font-medium shadow-md transition-all hover:shadow-lg"
             >
               Book Another Service
             </Button>
@@ -359,243 +360,281 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-3xl mx-auto p-4 py-8">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-balance mb-2">{profile.name}</h1>
-          <p className="text-muted-foreground">
-            {profile.city}{profile.city && profile.country && ', '}{profile.country}
-          </p>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center">
+      {/* Premium Header Background */}
+      <div className="w-full h-64 bg-slate-900 absolute top-0 left-0 z-0 overflow-hidden">
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px]"></div>
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-slate-50 to-transparent"></div>
+      </div>
+
+      <div className="w-full max-w-3xl z-10 px-4 pt-12 pb-8 flex flex-col grow">
+
+        {/* Business Header */}
+        <div className="text-center mb-10 space-y-2 animate-in slide-in-from-bottom-5 duration-500">
+          <div className="inline-flex items-center justify-center p-4 bg-white rounded-2xl shadow-xl mb-4">
+            <Sparkles className="size-8 text-primary" />
+          </div>
+          <h1 className="text-4xl font-extrabold tracking-tight text-white drop-shadow-sm">{profile.name}</h1>
+          <div className="flex items-center justify-center gap-2 text-slate-300">
+            <MapPin className="size-4" />
+            <p className="font-medium">
+              {profile.city}{profile.city && profile.country && ', '}{profile.country}
+            </p>
+          </div>
         </div>
 
-        {/* Step 1: Service Selection */}
-        {step === 'service' && (
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Choose a Service</h2>
-            {services.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  No services available at the moment.
+        {/* Dynamic Content Card */}
+        <div className="w-full grow flex flex-col">
+          {/* Step 1: Service Selection */}
+          {step === 'service' && (
+            <div className="space-y-6 animate-in fade-in duration-500">
+              <div className="flex flex-col items-center mb-6">
+                <h2 className="text-2xl font-bold text-slate-900">Select a Service</h2>
+                <p className="text-muted-foreground">Choose the perfect service for you</p>
+              </div>
+
+              {services.length === 0 ? (
+                <Card className="border-dashed">
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    No services available at the moment.
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {services.map((service) => (
+                    <div
+                      key={service.id}
+                      className="group relative bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-xl hover:border-primary/50 transition-all cursor-pointer bg-gradient-to-br from-white to-slate-50 hover:to-white"
+                      onClick={() => handleServiceSelect(service)}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-bold text-lg text-slate-800 group-hover:text-primary transition-colors">{service.name}</h3>
+                        <span className="font-bold text-lg bg-primary/10 text-primary px-3 py-1 rounded-full text-sm">
+                          {profile.currency} {service.price}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
+                        <Clock className="size-4" />
+                        <span>{service.duration} mins</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 2: Date & Time Selection */}
+          {step === 'datetime' && selectedService && (
+            <div className="animate-in slide-in-from-right-10 duration-500">
+              <Button variant="ghost" onClick={() => setStep('service')} className="mb-6 hover:bg-white/50 -ml-4 text-muted-foreground">
+                <ChevronLeft className="size-4 mr-1" /> Change Service
+              </Button>
+
+              <div className="grid md:grid-cols-12 gap-6 items-start">
+                {/* Summary Sidebar */}
+                <Card className="md:col-span-4 border-none shadow-lg bg-slate-900 text-white overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-primary/20 rounded-full blur-xl -mr-10 -mt-10"></div>
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium text-slate-200">Selected Service</CardTitle>
+                    <h3 className="text-2xl font-bold mt-1">{selectedService.name}</h3>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-3 text-slate-300">
+                      <div className="size-8 rounded-full bg-white/10 flex items-center justify-center"><Clock className="size-4" /></div>
+                      <div>
+                        <p className="text-xs text-slate-400 uppercase tracking-wider">Duration</p>
+                        <p className="font-medium">{selectedService.duration} Minutes</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-slate-300">
+                      <div className="size-8 rounded-full bg-white/10 flex items-center justify-center"><span className="text-xs font-bold">{profile.currency}</span></div>
+                      <div>
+                        <p className="text-xs text-slate-400 uppercase tracking-wider">Price</p>
+                        <p className="font-medium">{profile.currency} {selectedService.price}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Content */}
+                <Card className="md:col-span-8 shadow-xl border-none">
+                  <CardHeader>
+                    <CardTitle>Choose a Date & Time</CardTitle>
+                    <CardDescription>Select a slot that works for you</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-8">
+                    <div>
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        disabled={(date) => {
+                          const today = new Date()
+                          today.setHours(0, 0, 0, 0)
+                          if (date < today) return true
+
+                          if (availability) {
+                            const maxDate = new Date()
+                            maxDate.setDate(maxDate.getDate() + availability.advance_booking_days)
+                            if (date > maxDate) return true
+                          }
+                          return false
+                        }}
+                        className="rounded-lg border shadow-sm mx-auto"
+                      />
+                    </div>
+
+                    {selectedDate && (
+                      <div className="animate-in fade-in slide-in-from-top-2">
+                        <Label className="text-base font-semibold mb-4 block">
+                          Available Slots for {selectedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+                        </Label>
+                        {loadingSlots ? (
+                          <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          </div>
+                        ) : availableSlots.length === 0 ? (
+                          <div className="text-center py-8 bg-muted/30 rounded-lg border border-dashed">
+                            <Clock className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                            <p className="text-muted-foreground font-medium">No slots available on this date.</p>
+                            <p className="text-xs text-muted-foreground">Please try another day.</p>
+                          </div>
+                        ) : (
+                          <RadioGroup value={selectedTime} onValueChange={setSelectedTime}>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                              {availableSlots.map((time) => (
+                                <div key={time}>
+                                  <RadioGroupItem
+                                    value={time}
+                                    id={time}
+                                    className="peer sr-only"
+                                  />
+                                  <Label
+                                    htmlFor={time}
+                                    className="flex flex-col items-center justify-center rounded-lg border bg-background px-3 py-3 hover:bg-slate-50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 peer-data-[state=checked]:text-primary cursor-pointer transition-all shadow-sm peer-data-[state=checked]:shadow-md font-medium text-sm text-center"
+                                  >
+                                    {formatTime(time)}
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
+                          </RadioGroup>
+                        )}
+                      </div>
+                    )}
+
+                    <Button
+                      onClick={handleDateTimeNext}
+                      disabled={!selectedDate || !selectedTime || loadingSlots}
+                      className="w-full h-12 text-base shadow-lg hover:shadow-xl transition-all"
+                    >
+                      Continue to Details
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Client Details */}
+          {step === 'details' && selectedService && selectedDate && selectedTime && (
+            <div className="max-w-xl mx-auto w-full animate-in slide-in-from-right-10 duration-500">
+              <Button variant="ghost" onClick={() => setStep('datetime')} className="mb-6 hover:bg-white/50 -ml-4 text-muted-foreground">
+                <ChevronLeft className="size-4 mr-1" /> Back to Time
+              </Button>
+
+              <Card className="shadow-2xl border-none overflow-hidden">
+                <div className="h-2 bg-gradient-to-r from-primary to-purple-600"></div>
+                <CardHeader>
+                  <CardTitle className="text-2xl">Finalize Booking</CardTitle>
+                  <CardDescription>
+                    Enter your details to confirm your appointment.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Full Name *</Label>
+                        <Input
+                          id="name"
+                          value={clientName}
+                          onChange={(e) => setClientName(e.target.value)}
+                          required
+                          placeholder="e.g. John Doe"
+                          className="h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number *</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          value={clientPhone}
+                          onChange={(e) => setClientPhone(e.target.value)}
+                          required
+                          placeholder="e.g. +1 234 567 8900"
+                          className="h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email (Optional)</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={clientEmail}
+                          onChange={(e) => setClientEmail(e.target.value)}
+                          placeholder="john@example.com"
+                          className="h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="notes">Special Requests (Optional)</Label>
+                        <Textarea
+                          id="notes"
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          placeholder="Anything we should know?"
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 space-y-3">
+                      <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-2">Order Summary</h4>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Service</span>
+                        <span className="font-medium">{selectedService.name}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Date & Time</span>
+                        <span className="font-medium">{selectedDate.toLocaleDateString()} at {formatTime(selectedTime)}</span>
+                      </div>
+                      <div className="flex justify-between text-base font-bold pt-2 border-t border-slate-200 mt-2">
+                        <span>Total to Pay</span>
+                        <span className="text-primary">{profile.currency} {selectedService.price}</span>
+                      </div>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting || !clientName || !clientPhone}
+                      className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-primary/25 transition-all"
+                    >
+                      {isSubmitting ? (
+                        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Confirming...</>
+                      ) : 'Confirm Booking'}
+                    </Button>
+                    <p className="text-xs text-center text-muted-foreground">
+                      By confirming, you agree to our booking terms.
+                    </p>
+                  </form>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {services.map((service) => (
-                  <Card
-                    key={service.id}
-                    className="cursor-pointer hover:border-primary transition-colors"
-                    onClick={() => handleServiceSelect(service)}
-                  >
-                    <CardHeader>
-                      <CardTitle className="text-lg">{service.name}</CardTitle>
-                      <CardDescription>
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-lg font-semibold text-foreground">
-                            {profile.currency} {service.price}
-                          </span>
-                          <span className="text-sm flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {service.duration} min
-                          </span>
-                        </div>
-                      </CardDescription>
-                    </CardHeader>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 2: Date & Time Selection */}
-        {step === 'datetime' && selectedService && (
-          <div>
-            <Button
-              variant="ghost"
-              onClick={() => setStep('service')}
-              className="mb-4"
-            >
-              ← Back to Services
-            </Button>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>{selectedService.name}</CardTitle>
-                <CardDescription>
-                  {profile.currency} {selectedService.price} · {selectedService.duration} minutes
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <Label className="text-base mb-3 block">Select Date</Label>
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    disabled={(date) => {
-                      const today = new Date()
-                      today.setHours(0, 0, 0, 0)
-                      if (date < today) return true
-
-                      if (availability) {
-                        const maxDate = new Date()
-                        maxDate.setDate(maxDate.getDate() + availability.advance_booking_days)
-                        if (date > maxDate) return true
-                      }
-
-                      return false
-                    }}
-                    className="rounded-md border w-full"
-                  />
-                </div>
-
-                {selectedDate && (
-                  <div>
-                    <Label className="text-base mb-3 block">
-                      {loadingSlots ? 'Loading available times...' : 'Select Time'}
-                    </Label>
-                    {loadingSlots ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      </div>
-                    ) : availableSlots.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        No available times on this date. Please choose another day.
-                      </div>
-                    ) : (
-                      <RadioGroup value={selectedTime} onValueChange={setSelectedTime}>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                          {availableSlots.map((time) => (
-                            <div key={time}>
-                              <RadioGroupItem
-                                value={time}
-                                id={time}
-                                className="peer sr-only"
-                              />
-                              <Label
-                                htmlFor={time}
-                                className="flex items-center justify-center rounded-md border-2 border-muted bg-background px-3 py-2 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer transition-colors text-sm"
-                              >
-                                {formatTime(time)}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </RadioGroup>
-                    )}
-                  </div>
-                )}
-
-                <Button
-                  onClick={handleDateTimeNext}
-                  disabled={!selectedDate || !selectedTime || loadingSlots}
-                  className="w-full"
-                >
-                  Continue
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Step 3: Client Details */}
-        {step === 'details' && selectedService && selectedDate && selectedTime && (
-          <div>
-            <Button
-              variant="ghost"
-              onClick={() => setStep('datetime')}
-              className="mb-4"
-            >
-              ← Back to Date & Time
-            </Button>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Details</CardTitle>
-                <CardDescription>
-                  We'll use this to confirm your booking
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">Full Name *</Label>
-                    <Input
-                      id="name"
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      required
-                      placeholder="e.g. Ama Mensah"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="phone">Phone Number *</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={clientPhone}
-                      onChange={(e) => setClientPhone(e.target.value)}
-                      required
-                      placeholder="e.g. +233 24 123 4567"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="email">Email (Optional)</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={clientEmail}
-                      onChange={(e) => setClientEmail(e.target.value)}
-                      placeholder="e.g. ama@example.com"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="notes">Special Requests (Optional)</Label>
-                    <Textarea
-                      id="notes"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Any special requests or notes?"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="bg-muted rounded-lg p-4 space-y-2 text-sm">
-                    <div className="font-medium mb-2">Booking Summary</div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Service:</span>
-                      <span>{selectedService.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Date:</span>
-                      <span>{selectedDate.toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Time:</span>
-                      <span>{formatTime(selectedTime)}</span>
-                    </div>
-                    <div className="flex justify-between font-medium pt-2 border-t">
-                      <span>Total:</span>
-                      <span>{profile.currency} {selectedService.price}</span>
-                    </div>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting || !clientName || !clientPhone}
-                    className="w-full"
-                  >
-                    {isSubmitting ? 'Submitting...' : 'Confirm Booking'}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
