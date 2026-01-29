@@ -128,6 +128,8 @@ export default function AvailabilityPage() {
           slot_duration: settings.slotDuration,
           buffer_time: settings.bufferTime,
           advance_booking_days: settings.advanceBookingDays,
+        }, {
+          onConflict: 'user_id'
         })
 
       if (error) throw error

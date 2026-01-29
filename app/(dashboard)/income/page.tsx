@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ArrowDown, ArrowUp, DollarSign, TrendingUp, Calendar } from "lucide-react"
+import { ArrowDown, ArrowUp, Wallet, TrendingUp, Calendar } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -119,7 +119,7 @@ export default function IncomePage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               This Week
             </CardTitle>
-            <DollarSign className="size-4 text-muted-foreground" />
+            <Wallet className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{currencySymbol} {totalThisWeek.toLocaleString()}</div>
@@ -242,7 +242,7 @@ export default function IncomePage() {
       {transactions.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
-            <DollarSign className="size-12 mx-auto text-muted-foreground/50" />
+            <Wallet className="size-12 mx-auto text-muted-foreground/50" />
             <h3 className="mt-4 text-lg font-medium">No income recorded yet</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               When you complete jobs and receive payments, they'll appear here.

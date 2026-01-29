@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { DollarSign, Loader2, Calendar as CalendarIcon } from 'lucide-react'
+import { Wallet, Loader2, Calendar as CalendarIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
     Dialog,
@@ -135,7 +135,7 @@ export function AddIncomeDialog({
                         <div className="grid gap-2">
                             <Label htmlFor="amount">Amount Received</Label>
                             <div className="relative">
-                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                                <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                                 <Input
                                     id="amount"
                                     type="number"
