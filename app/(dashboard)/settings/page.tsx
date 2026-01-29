@@ -106,8 +106,8 @@ export default function SettingsPage() {
               <AvatarFallback className="text-2xl bg-primary/10 text-primary">{initials}</AvatarFallback>
             </Avatar>
             <div className="space-y-2">
-              <Button variant="outline" size="sm">Change Photo</Button>
-              <p className="text-xs text-muted-foreground">JPG, PNG. Max 2MB.</p>
+              {/* <Button variant="outline" size="sm">Change Photo</Button>
+              <p className="text-xs text-muted-foreground">JPG, PNG. Max 2MB.</p> */}
             </div>
           </div>
 

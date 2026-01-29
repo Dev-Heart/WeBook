@@ -178,6 +178,7 @@ export async function createBooking(payload: {
                 booking_date: payload.date, // Legacy support
                 booking_time: payload.time, // Legacy support
                 notes: payload.notes,
+                price: payload.price || 0,
                 status: 'scheduled',
             })
             .select()
@@ -425,5 +426,86 @@ export async function updateBusinessProfileAction(payload: {
     } catch (error: any) {
         console.error('Failed to update business profile:', error)
         return { success: false, error: error.message || 'Failed to update settings' }
+    }
+}
+
+export async function getPublicBusinessDataAction(userId: string) {
+    // Use Admin Client to bypass RLS for public booking page
+    const supabase = createAdminClient()
+
+    try {
+        // 1. Check availability/subscription lock
+        const { data: isAvailable, error: rpcError } = await supabase.rpc('is_subscription_active', {
+            target_user_id: userId
+        })
+
+        if (rpcError) {
+            console.error('Error checking subscription status:', rpcError)
+            return { error: 'Failed to verify business availability' }
+        }
+
+        if (!isAvailable) {
+            return { isUnavailable: true }
+        }
+
+        // 2. Fetch Profile
+        const { data: profile } = await supabase
+            .from('business_profiles')
+            .select('*')
+            .eq('user_id', userId)
+            .single()
+
+        if (!profile) {
+            return { error: 'Business not found' }
+        }
+
+        // 3. Fetch Services
+        const { data: services } = await supabase
+            .from('services')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('active', true)
+            .order('price')
+
+        // 4. Fetch Availability
+        const { data: availability } = await supabase
+            .from('availability_settings')
+            .select('*')
+            .eq('user_id', userId)
+            .single()
+
+        return {
+            profile: {
+                name: profile.business_name || 'Business',
+                city: profile.location_name || '',
+                country: profile.location_address || '',
+                currency: profile.currency_display || 'GH₵',
+            },
+            services: services || [],
+            availability: availability || null
+        }
+    } catch (error: any) {
+        console.error('Error fetching public business data:', error)
+        return { error: 'Failed to load business data' }
+    }
+}
+
+export async function getAvailableSlotsAction(userId: string, dateStr: string) {
+    const supabase = createAdminClient()
+
+    try {
+        const { data: bookings, error } = await supabase
+            .from('bookings')
+            .select('time')
+            .eq('user_id', userId)
+            .eq('date', dateStr)
+            .in('status', ['scheduled', 'confirmed'])
+
+        if (error) throw error
+
+        return { bookedTimes: bookings.map(b => b.time) }
+    } catch (error) {
+        console.error('Error fetching slots:', error)
+        return { bookedTimes: [] }
     }
 }

@@ -98,51 +98,39 @@ export default function BookingPage() {
 
       setUserId(targetUserId)
 
-      // Check if business has active subscription
-      const isAvailable = await checkBookingAvailability(targetUserId)
-      if (!isAvailable) {
+      // Fetch public business data (Server Action bypasses RLS)
+      const { getPublicBusinessDataAction } = await import('@/app/actions')
+      const data = await getPublicBusinessDataAction(targetUserId)
+
+      if (data.error) {
+        console.error('Error loading business:', data.error)
+        setLoading(false)
+        return
+      }
+
+      if (data.isUnavailable) {
         setIsUnavailable(true)
         setLoading(false)
         return
       }
 
-      // Fetch business profile
-      const { data: profileData } = await supabase
-        .from('business_profiles')
-        .select('*')
-        .eq('user_id', targetUserId)
-        .single()
-
-      if (profileData) {
+      if (data.profile) {
         setProfile({
-          name: profileData.business_name || 'Business',
-          city: profileData.city || '',
-          country: profileData.country || '',
-          currency: profileData.currency_display || 'GH₵',
+          name: data.profile.name,
+          city: data.profile.city,
+          country: data.profile.country,
+          currency: data.profile.currency,
         })
       }
 
-      // Fetch active services
-      const { data: servicesData } = await supabase
-        .from('services')
-        .select('*')
-        .eq('user_id', targetUserId)
-        .eq('active', true)
-
-      if (servicesData) {
-        setServices(servicesData)
+      if (data.services) {
+        setServices(data.services)
       }
 
-      // Fetch availability settings
-      const { data: availData } = await supabase
-        .from('availability_settings')
-        .select('*')
-        .eq('user_id', targetUserId)
-        .single()
-
-      if (availData) {
-        setAvailability(availData)
+      if (data.availability) {
+        setAvailability(data.availability)
       }
+
     } catch (error) {
       console.error('[v0] Error loading business data:', error)
     } finally {
@@ -172,19 +160,15 @@ export default function BookingPage() {
         availability.buffer_time
       )
 
-      // Fetch existing bookings for this date
+      // Fetch existing bookings via Server Action (bypasses RLS)
       const dateStr = date.toISOString().split('T')[0]
-      const { data: bookings } = await supabase
-        .from('bookings')
-        .select('time')
-        .eq('user_id', userId)
-        .eq('date', dateStr)
-        .in('status', ['scheduled', 'confirmed'])
+      const { getAvailableSlotsAction } = await import('@/app/actions')
+      const { bookedTimes } = await getAvailableSlotsAction(userId, dateStr)
 
-      const bookedTimes = new Set(bookings?.map(b => b.time) || [])
+      const bookedSet = new Set(bookedTimes || [])
 
       // Filter out booked slots
-      const available = slots.filter(slot => !bookedTimes.has(slot))
+      const available = slots.filter(slot => !bookedSet.has(slot))
       setAvailableSlots(available)
     } catch (error) {
       console.error('[v0] Error loading slots:', error)
@@ -316,7 +300,7 @@ export default function BookingPage() {
             </div>
             <CardTitle className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-cyan-600">Booking Confirmed!</CardTitle>
             <CardDescription className="text-base mt-2 max-w-xs mx-auto">
-              We'll see you soon! A confirmation has been sent to your phone.
+              We look forward to seeing you!
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { createClient } from "@/lib/supabase/client"
 import { useSubscription } from "@/components/subscription-provider"
 import { getServices, isDemoMode, DEMO_DATA, getBusinessProfile, type Service } from "@/lib/business-data"
 import { AddServiceDialog } from "@/components/add-service-dialog"
@@ -87,12 +88,31 @@ export default function ServicesPage() {
   const [showDemo, setShowDemo] = useState(false)
   const { isLocked } = useSubscription()
 
-  useEffect(() => {
+  const fetchServices = async () => {
     const isDemo = isDemoMode()
     setShowDemo(isDemo)
-    // In a real app, DEMO_DATA.services doesn't exist yet in business-data.ts 
-    // but the user wants isolation. I'll use empty array if not in demo.
-    setServices(isDemo ? (DEMO_DATA as any).services || [] : getServices())
+
+    if (isDemo) {
+      setServices((DEMO_DATA as any).services || [])
+    } else {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data } = await supabase
+          .from('services')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('name')
+
+        if (data) {
+          setServices(data)
+        }
+      }
+    }
+  }
+
+  useEffect(() => {
+    fetchServices()
   }, [])
 
   const categories = [...new Set(services.map((s) => s.category || "General"))]
@@ -106,7 +126,7 @@ export default function ServicesPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Services</h1>
           <p className="text-muted-foreground">Manage what you offer to clients</p>
         </div>
-        <AddServiceDialog onSuccess={() => setServices(isDemoMode() ? (DEMO_DATA as any).services || [] : getServices())} />
+        <AddServiceDialog onSuccess={fetchServices} />
       </div>
 
       {/* Stats */}
