@@ -18,9 +18,11 @@ import { toast } from "sonner"
 
 export function ShareBookingDialog({ userId, businessName }: { userId: string, businessName: string }) {
     const [copied, setCopied] = useState(false)
-    const bookingUrl = typeof window !== "undefined"
-        ? `${window.location.origin}/book?u=${userId}`
-        : `/book?u=${userId}`
+    const bookingUrl = process.env.NEXT_PUBLIC_SITE_URL
+        ? `${process.env.NEXT_PUBLIC_SITE_URL}/book?u=${userId}`
+        : typeof window !== "undefined"
+            ? `${window.location.origin}/book?u=${userId}`
+            : `/book?u=${userId}`
 
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
         `Hi! You can book an appointment with ${businessName} here: ${bookingUrl}`

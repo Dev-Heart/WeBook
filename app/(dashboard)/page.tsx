@@ -197,7 +197,6 @@ export default function DashboardPage() {
           Add Client
         </Button>
         <Button variant="outline" className="gap-2" onClick={() => setIsIncomeDialogOpen(true)}>
-          <DollarSign className="size-4" />
           Record Income
         </Button>
         <ShareBookingDialog

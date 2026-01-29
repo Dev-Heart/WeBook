@@ -413,6 +413,8 @@ export async function updateBusinessProfileAction(payload: {
                 user_id: user.id,
                 ...payload,
                 updated_at: new Date().toISOString(),
+            }, {
+                onConflict: 'user_id'
             })
 
         if (error) throw error
