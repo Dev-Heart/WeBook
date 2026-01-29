@@ -252,12 +252,14 @@ export default function BookingPage() {
         price: selectedService.price
       })
 
-      if (!result.success) throw new Error(result.error || 'Failed to create booking')
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create booking')
+      }
 
       setStep('success')
-    } catch (error) {
+    } catch (error: any) {
       console.error('[v0] Error saving booking:', error)
-      alert('Failed to create booking. Please try again.')
+      alert(error.message || 'Failed to create booking. Please try again.')
     } finally {
       setIsSubmitting(false)
     }

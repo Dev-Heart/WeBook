@@ -126,7 +126,7 @@ export async function completeOnboardingAction(payload: {
 }
 
 export async function checkBookingAvailability(userId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     // Call the secure RPC function
     const { data, error } = await supabase.rpc('is_subscription_active', {
@@ -183,26 +183,39 @@ export async function createBooking(payload: {
             .select()
             .single()
 
-        if (bookingError) throw bookingError
+        if (bookingError) {
+            console.error('Booking creation error:', bookingError)
+            return { success: false, error: `Database error (Booking): ${bookingError.message}` }
+        }
+
+        if (!booking) {
+            return { success: false, error: 'Failed to retrieve created booking' }
+        }
 
         // 2. Create or update client
-        const { data: existingClient } = await supabase
+        const { data: existingClient, error: clientFetchError } = await supabase
             .from('clients')
             .select('*')
             .eq('user_id', payload.userId)
             .eq('phone', payload.clientPhone)
             .single()
 
+        if (clientFetchError && clientFetchError.code !== 'PGRST116') {
+            console.error('Client fetch error:', clientFetchError)
+            // Continue even if client fetch fails, as booking is created
+        }
+
         if (existingClient) {
-            await supabase
+            const { error: clientUpdateError } = await supabase
                 .from('clients')
                 .update({
                     visits: existingClient.visits + 1,
                     last_visit: payload.date,
                 })
                 .eq('id', existingClient.id)
+            if (clientUpdateError) console.error('Client update error:', clientUpdateError)
         } else {
-            await supabase
+            const { error: clientInsertError } = await supabase
                 .from('clients')
                 .insert({
                     user_id: payload.userId,
@@ -213,36 +226,41 @@ export async function createBooking(payload: {
                     total_spent: 0,
                     vip: false,
                 })
+            if (clientInsertError) console.error('Client insert error:', clientInsertError)
         }
 
-        // 3. Send Notification (Async, don't block response)
-        // We get the business name first for the notification
-        const { data: profile } = await supabase
-            .from('business_profiles')
-            .select('business_name')
-            .eq('user_id', payload.userId)
-            .single()
+        // 3. Send Notification (Async, don't block response if it fails)
+        try {
+            const { data: profile } = await supabase
+                .from('business_profiles')
+                .select('business_name')
+                .eq('user_id', payload.userId)
+                .single()
 
-        const businessName = profile?.business_name || 'Business'
+            const businessName = profile?.business_name || 'Business'
 
-        await notificationService.sendNotification({
-            userId: payload.userId,
-            bookingId: booking.id,
-            recipient: payload.clientPhone,
-            type: 'confirmation',
-            customerName: payload.clientName,
-            businessName: businessName,
-            serviceName: payload.serviceName,
-            date: payload.date,
-            time: payload.time
-        })
+            await notificationService.sendNotification({
+                userId: payload.userId,
+                bookingId: booking.id,
+                recipient: payload.clientPhone,
+                type: 'confirmation',
+                customerName: payload.clientName,
+                businessName: businessName,
+                serviceName: payload.serviceName,
+                date: payload.date,
+                time: payload.time
+            })
+        } catch (notifError: any) {
+            console.error('Notification failed:', notifError)
+            // Don't fail the whole request for notification errors
+        }
 
         revalidatePath('/')
         revalidatePath('/bookings')
         return { success: true }
-    } catch (error) {
-        console.error('Create booking failed:', error)
-        return { success: false, error: 'Failed to create booking' }
+    } catch (error: any) {
+        console.error('Create booking internal failure:', error)
+        return { success: false, error: `Internal failure: ${error.message || 'Unknown error'}` }
     }
 }
 
