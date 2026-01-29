@@ -30,90 +30,92 @@ export default function IncomePage() {
 
   useEffect(() => {
     async function loadData() {
-      const isDemo = isDemoMode()
-      setShowDemo(isDemo)
-      const currentProfile = getBusinessProfile()
-      setProfile(currentProfile)
-      setMounted(true)
+      try {
+        const isDemo = isDemoMode()
+        setShowDemo(isDemo)
+        const currentProfile = getBusinessProfile()
+        setProfile(currentProfile)
 
-      if (isDemo) {
-        setTransactions((DEMO_DATA as any).bookings?.map((b: any) => ({
-          id: b.id,
-          client: b.client,
-          service: b.service,
-          amount: `${currentProfile?.currency === 'GHS' ? 'GH₵' : '$'} ${b.price}`,
-          date: b.date,
-          status: "received"
-        })) || [])
-      } else {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        if (isDemo) {
+          const bookings = (DEMO_DATA as any).bookings || []
+          setTransactions(bookings.map((b: any) => ({
+            id: b.id,
+            client: b.client,
+            service: b.service,
+            amount: `${currentProfile?.currency === 'GHS' ? 'GH₵' : '$'} ${b.price}`,
+            date: b.date,
+            status: "received"
+          })))
+        } else {
+          const supabase = createClient()
+          const { data: { user } } = await supabase.auth.getUser()
 
-        if (user) {
-          // Fetch completed bookings for the last 30 days
-          const { data: bookings } = await supabase
-            .from('bookings')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('status', 'completed')
-            .order('date', { ascending: false })
+          if (user) {
+            const { data: bookings } = await supabase
+              .from('bookings')
+              .select('*')
+              .eq('user_id', user.id)
+              .eq('status', 'completed')
+              .order('date', { ascending: false })
 
-          if (bookings) {
-            // 1. Transactions List (Top 10)
-            const items = bookings.slice(0, 10).map(b => ({
-              id: b.id,
-              client: b.client_name || 'Client',
-              service: b.service_name || 'Service',
-              amount: b.price || 0,
-              date: b.date,
-              status: 'received'
-            }))
-            setTransactions(items)
+            if (bookings) {
+              // 1. Transactions List (Top 10)
+              setTransactions(bookings.slice(0, 10).map(b => ({
+                id: b.id,
+                client: b.client_name || 'Client',
+                service: b.service_name || 'Service',
+                amount: b.price || 0,
+                date: b.date,
+                status: 'received'
+              })))
 
-            // 2. Calculate Weekly Data
-            const today = new Date()
-            const dayOfWeek = today.getDay() // 0 (Sun) - 6 (Sat)
-            // Adjust to make Monday index 0
-            const todayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+              // 2. Calculate Weekly Data
+              const today = new Date()
+              const dayOfWeek = today.getDay()
+              const todayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1
 
-            // Get start of week (Monday)
-            const startOfWeek = new Date(today)
-            startOfWeek.setDate(today.getDate() - todayIndex)
-            startOfWeek.setHours(0, 0, 0, 0)
+              const startOfWeek = new Date(today)
+              startOfWeek.setDate(today.getDate() - todayIndex)
+              startOfWeek.setHours(0, 0, 0, 0)
 
-            const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-            const weeklyStats = days.map((day, index) => {
-              const targetDate = new Date(startOfWeek)
-              targetDate.setDate(startOfWeek.getDate() + index)
-              const dateStr = targetDate.toISOString().split('T')[0]
+              const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+              const weeklyStats = days.map((day, index) => {
+                const targetDate = new Date(startOfWeek)
+                targetDate.setDate(startOfWeek.getDate() + index)
+                const dateStr = targetDate.toISOString().split('T')[0]
 
-              const dayIncome = bookings
-                .filter(b => b.date === dateStr)
-                .reduce((sum, b) => sum + (b.price || 0), 0)
+                const dayIncome = bookings
+                  .filter(b => b.date === dateStr)
+                  .reduce((sum, b) => sum + (Number(b.price) || 0), 0)
 
-              return { day, income: dayIncome }
-            })
-            setWeeklyDataState(weeklyStats)
+                return { day, income: dayIncome }
+              })
+              setWeeklyDataState(weeklyStats)
 
-            // 3. Totals
-            const thisWeekTotal = bookings.filter(b => {
-              const d = new Date(b.date)
-              return d >= startOfWeek
-            }).reduce((sum, b) => sum + (b.price || 0), 0)
-            setTotalThisWeekState(thisWeekTotal)
+              // 3. Totals
+              const thisWeekTotal = bookings.filter(b => {
+                const d = new Date(b.date)
+                return d >= startOfWeek
+              }).reduce((sum, b) => sum + (Number(b.price) || 0), 0)
+              setTotalThisWeekState(thisWeekTotal)
 
-            const thisMonthTotal = bookings.filter(b => {
-              const d = new Date(b.date)
-              return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
-            }).reduce((sum, b) => sum + (b.price || 0), 0)
-            setTotalThisMonthState(thisMonthTotal)
+              const thisMonthTotal = bookings.filter(b => {
+                const d = new Date(b.date)
+                return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
+              }).reduce((sum, b) => sum + (Number(b.price) || 0), 0)
+              setTotalThisMonthState(thisMonthTotal)
 
-            setJobsCompletedState(bookings.filter(b => {
-              const d = new Date(b.date)
-              return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
-            }).length)
+              setJobsCompletedState(bookings.filter(b => {
+                const d = new Date(b.date)
+                return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
+              }).length)
+            }
           }
         }
+      } catch (error) {
+        console.error('Error loading income data:', error)
+      } finally {
+        setMounted(true)
       }
     }
     loadData()
@@ -149,9 +151,10 @@ export default function IncomePage() {
     { day: "Sun", income: 60 },
   ]
 
-  const weeklyData = showDemo ? demoWeeklyData : weeklyDataState
-  const totalThisWeek = showDemo ? demoWeeklyData.reduce((sum, day) => sum + day.income, 0) : totalThisWeekState
-  const avgDaily = weeklyData.length > 0 ? Math.round(totalThisWeek / (showDemo ? 7 : (new Date().getDay() || 7))) : 0
+  const weeklyData = showDemo ? demoWeeklyData : (weeklyDataState || [])
+  const totalThisWeek = showDemo ? demoWeeklyData.reduce((sum, day) => sum + day.income, 0) : (totalThisWeekState || 0)
+  const daysInWeek = new Date().getDay() || 7
+  const avgDaily = weeklyData.length > 0 ? Math.round(totalThisWeek / (showDemo ? 7 : daysInWeek)) : 0
 
   const chartConfig = {
     income: {
