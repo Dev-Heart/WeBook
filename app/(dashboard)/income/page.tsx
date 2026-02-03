@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { ArrowDown, ArrowUp, Wallet, TrendingUp, Calendar } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import {
   Select,
   SelectContent,
@@ -17,99 +16,105 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer } from "recharts"
+import { Bar, BarChart, XAxis, YAxis } from "recharts"
 import { createClient } from "@/lib/supabase/client"
-import { isDemoMode, DEMO_DATA, getBusinessProfile } from "@/lib/business-data"
+import { getBusinessProfile } from "@/lib/business-data"
 
 export default function IncomePage() {
-  const [showDemo, setShowDemo] = useState(false)
   const [profile, setProfile] = useState<any>(null)
   const [transactions, setTransactions] = useState<any[]>([])
   const [mounted, setMounted] = useState(false)
-  const [totalIncome, setTotalIncome] = useState(0)
+
+  // Stats state
+  const [weeklyDataState, setWeeklyDataState] = useState<any[]>([])
+  const [totalThisWeekState, setTotalThisWeekState] = useState(0)
+  const [totalThisMonthState, setTotalThisMonthState] = useState(0)
+  const [jobsCompletedState, setJobsCompletedState] = useState(0)
+  const [avgDailyState, setAvgDailyState] = useState(0)
 
   useEffect(() => {
     async function loadData() {
       try {
-        const isDemo = isDemoMode()
-        setShowDemo(isDemo)
         const currentProfile = getBusinessProfile()
         setProfile(currentProfile)
 
-        if (isDemo) {
-          const bookings = (DEMO_DATA as any).bookings || []
-          setTransactions(bookings.map((b: any) => ({
-            id: b.id,
-            client: b.client,
-            service: b.service,
-            amount: `${currentProfile?.currency === 'GHS' ? 'GH₵' : '$'} ${b.price}`,
-            date: b.date,
-            status: "received"
-          })))
-        } else {
-          const supabase = createClient()
-          const { data: { user } } = await supabase.auth.getUser()
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
 
-          if (user) {
-            const { data: bookings } = await supabase
-              .from('bookings')
-              .select('*')
-              .eq('user_id', user.id)
-              .eq('status', 'completed')
-              .order('date', { ascending: false })
+        if (user) {
+          const { data: bookings } = await supabase
+            .from('bookings')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('status', 'completed')
+            .order('date', { ascending: false })
 
-            if (bookings) {
-              // 1. Transactions List (Top 10)
-              setTransactions(bookings.slice(0, 10).map(b => ({
-                id: b.id,
-                client: b.client_name || 'Client',
-                service: b.service_name || 'Service',
-                amount: b.price || 0,
-                date: b.date,
-                status: 'received'
-              })))
+          if (bookings && bookings.length > 0) {
+            // 1. Transactions List (Top 10)
+            setTransactions(bookings.slice(0, 10).map(b => ({
+              id: b.id,
+              client: b.client_name || 'Client',
+              service: b.service_name || 'Service',
+              amount: b.price || 0,
+              date: b.date,
+              status: 'received'
+            })))
 
-              // 2. Calculate Weekly Data
-              const today = new Date()
-              const dayOfWeek = today.getDay()
-              const todayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+            // 2. Calculate Weekly Data
+            const today = new Date()
+            const dayOfWeek = today.getDay()
+            const todayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // Mon=0, Sun=6
 
-              const startOfWeek = new Date(today)
-              startOfWeek.setDate(today.getDate() - todayIndex)
-              startOfWeek.setHours(0, 0, 0, 0)
+            const startOfWeek = new Date(today)
+            startOfWeek.setDate(today.getDate() - todayIndex)
+            startOfWeek.setHours(0, 0, 0, 0)
 
-              const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-              const weeklyStats = days.map((day, index) => {
-                const targetDate = new Date(startOfWeek)
-                targetDate.setDate(startOfWeek.getDate() + index)
-                const dateStr = targetDate.toISOString().split('T')[0]
+            const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            const weeklyStats = days.map((day, index) => {
+              const targetDate = new Date(startOfWeek)
+              targetDate.setDate(startOfWeek.getDate() + index)
+              const dateStr = targetDate.toISOString().split('T')[0]
 
-                const dayIncome = bookings
-                  .filter(b => b.date === dateStr)
-                  .reduce((sum, b) => sum + (Number(b.price) || 0), 0)
+              const dayIncome = bookings
+                .filter(b => b.date === dateStr)
+                .reduce((sum, b) => sum + (Number(b.price) || 0), 0)
 
-                return { day, income: dayIncome }
-              })
-              setWeeklyDataState(weeklyStats)
+              return { day, income: dayIncome }
+            })
+            setWeeklyDataState(weeklyStats)
 
-              // 3. Totals
-              const thisWeekTotal = bookings.filter(b => {
-                const d = new Date(b.date)
-                return d >= startOfWeek
-              }).reduce((sum, b) => sum + (Number(b.price) || 0), 0)
-              setTotalThisWeekState(thisWeekTotal)
+            // 3. Totals
+            const thisWeekTotal = bookings.filter(b => {
+              // Ensure we compare safely
+              const bDate = b.date // string YYYY-MM-DD
+              const startStr = startOfWeek.toISOString().split('T')[0]
+              return bDate >= startStr
+            }).reduce((sum, b) => sum + (Number(b.price) || 0), 0)
+            setTotalThisWeekState(thisWeekTotal)
 
-              const thisMonthTotal = bookings.filter(b => {
-                const d = new Date(b.date)
-                return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
-              }).reduce((sum, b) => sum + (Number(b.price) || 0), 0)
-              setTotalThisMonthState(thisMonthTotal)
+            const thisMonthTotal = bookings.filter(b => {
+              const d = new Date(b.date)
+              return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
+            }).reduce((sum, b) => sum + (Number(b.price) || 0), 0)
+            setTotalThisMonthState(thisMonthTotal)
 
-              setJobsCompletedState(bookings.filter(b => {
-                const d = new Date(b.date)
-                return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
-              }).length)
-            }
+            const completedCount = bookings.filter(b => {
+              const d = new Date(b.date)
+              return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
+            }).length
+            setJobsCompletedState(completedCount)
+
+            // Average Daily (this week)
+            const daysPassed = todayIndex + 1
+            setAvgDailyState(daysPassed > 0 ? Math.round(thisWeekTotal / daysPassed) : 0)
+
+          } else {
+            setTransactions([])
+            setWeeklyDataState([])
+            setTotalThisWeekState(0)
+            setTotalThisMonthState(0)
+            setJobsCompletedState(0)
+            setAvgDailyState(0)
           }
         }
       } catch (error) {
@@ -121,40 +126,27 @@ export default function IncomePage() {
     loadData()
   }, [])
 
-  const [weeklyDataState, setWeeklyDataState] = useState<any[]>([])
-  const [totalThisWeekState, setTotalThisWeekState] = useState(0)
-  const [totalThisMonthState, setTotalThisMonthState] = useState(0)
-  const [jobsCompletedState, setJobsCompletedState] = useState(0)
-
   if (!mounted) return null
 
-  const currencySymbol = profile?.currency === 'GHS' ? 'GH₵' :
-    profile?.currency === 'NGN' ? '₦' :
-      profile?.currency === 'KES' ? 'KSh' :
-        profile?.currency === 'ZAR' ? 'R' :
-          profile?.currency === 'USD' ? '$' :
-            profile?.currency === 'EUR' ? '€' :
-              profile?.currency === 'GBP' ? '£' :
-                profile?.currency === 'CAD' ? 'C$' :
-                  profile?.currency === 'AUD' ? 'A$' :
-                    profile?.currency === 'JPY' ? '¥' :
-                      profile?.currency === 'CNY' ? '¥' :
-                        profile?.currency === 'INR' ? '₹' : '$'
+  const getCurrencySymbol = () => {
+    const cur = (profile?.currency || 'USD').toUpperCase()
+    if (cur === 'GHS') return 'GH₵'
+    if (cur === 'NGN') return '₦'
+    if (cur === 'KES') return 'KSh'
+    if (cur === 'ZAR') return 'R'
+    if (cur === 'USD') return '$'
+    if (cur === 'EUR') return '€'
+    if (cur === 'GBP') return '£'
+    if (cur === 'CAD') return 'C$'
+    if (cur === 'AUD') return 'A$'
+    if (cur === 'JPY') return '¥'
+    if (cur === 'CNY') return '¥'
+    if (cur === 'INR') return '₹'
+    return '$'
+  }
 
-  const demoWeeklyData = [
-    { day: "Mon", income: 185 },
-    { day: "Tue", income: 320 },
-    { day: "Wed", income: 275 },
-    { day: "Thu", income: 410 },
-    { day: "Fri", income: 520 },
-    { day: "Sat", income: 680 },
-    { day: "Sun", income: 60 },
-  ]
-
-  const weeklyData = showDemo ? demoWeeklyData : (weeklyDataState || [])
-  const totalThisWeek = showDemo ? demoWeeklyData.reduce((sum, day) => sum + day.income, 0) : (totalThisWeekState || 0)
-  const daysInWeek = new Date().getDay() || 7
-  const avgDaily = weeklyData.length > 0 ? Math.round(totalThisWeek / (showDemo ? 7 : daysInWeek)) : 0
+  const currencySymbol = getCurrencySymbol()
+  const weeklyData = weeklyDataState
 
   const chartConfig = {
     income: {
@@ -194,10 +186,10 @@ export default function IncomePage() {
             <Wallet className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currencySymbol} {totalThisWeek.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{currencySymbol} {totalThisWeekState.toLocaleString()}</div>
             <div className="flex items-center gap-1 mt-1">
               <ArrowUp className="size-3 text-chart-1" />
-              <span className="text-xs text-chart-1 font-medium">0%</span>
+              <span className="text-xs text-chart-1 font-medium">--</span>
               <span className="text-xs text-muted-foreground">vs last week</span>
             </div>
           </CardContent>
@@ -211,10 +203,10 @@ export default function IncomePage() {
             <Calendar className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currencySymbol} {showDemo ? "2,450" : "0"}</div>
+            <div className="text-2xl font-bold">{currencySymbol} {totalThisMonthState.toLocaleString()}</div>
             <div className="flex items-center gap-1 mt-1">
               <ArrowUp className="size-3 text-chart-1" />
-              <span className="text-xs text-chart-1 font-medium">0%</span>
+              <span className="text-xs text-chart-1 font-medium">--</span>
               <span className="text-xs text-muted-foreground">vs last month</span>
             </div>
           </CardContent>
@@ -228,7 +220,7 @@ export default function IncomePage() {
             <TrendingUp className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currencySymbol} {avgDaily}</div>
+            <div className="text-2xl font-bold">{currencySymbol} {avgDailyState.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">Based on this week</p>
           </CardContent>
         </Card>
@@ -241,7 +233,7 @@ export default function IncomePage() {
             <span className="text-sm">✓</span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{showDemo ? "24" : "0"}</div>
+            <div className="text-2xl font-bold">{jobsCompletedState}</div>
             <p className="text-xs text-muted-foreground mt-1">This month</p>
           </CardContent>
         </Card>
@@ -299,7 +291,11 @@ export default function IncomePage() {
                   <p className="text-sm text-muted-foreground">{transaction.service}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-chart-1">{transaction.amount.includes(currencySymbol) ? transaction.amount : `${currencySymbol} ${transaction.amount}`}</p>
+                  <p className="font-semibold text-chart-1">
+                    {typeof transaction.amount === 'string' && transaction.amount.includes(currencySymbol)
+                      ? transaction.amount
+                      : `${currencySymbol} ${Number(transaction.amount).toLocaleString()}`}
+                  </p>
                   <p className="text-xs text-muted-foreground">{transaction.date}</p>
                 </div>
               </div>
