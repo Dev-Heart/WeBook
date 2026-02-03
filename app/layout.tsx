@@ -14,7 +14,6 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: 'WeBook - Manage Your Business',
   description: 'Simple business management for solo entrepreneurs',
-  generator: 'v0.app',
   manifest: '/manifest.json',
   openGraph: {
     type: 'website',
@@ -27,20 +26,7 @@ export const metadata: Metadata = {
     title: 'WeBook',
   },
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
+    icon: '/icon.png',
     apple: '/apple-icon.png',
   },
 }
