@@ -582,3 +582,133 @@ export async function repairClientStatsAction() {
         return { success: false, error: 'Failed to repair data' }
     }
 }
+
+// EXPENSES ACTIONS
+
+export async function getExpensesAction(startDate?: string, endDate?: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return { success: false, error: 'Unauthorized' }
+
+    try {
+        let query = supabase
+            .from('expenses')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('date', { ascending: false })
+            .order('created_at', { ascending: false })
+
+        if (startDate) {
+            query = query.gte('date', startDate)
+        }
+        if (endDate) {
+            query = query.lte('date', endDate)
+        }
+
+        const { data, error } = await query
+
+        if (error) throw error
+
+        return { success: true, data }
+    } catch (error: any) {
+        console.error('Failed to fetch expenses:', error)
+        return { success: false, error: error.message }
+    }
+}
+
+export async function createExpenseAction(payload: {
+    amount: number;
+    category: string;
+    date: string;
+    description?: string;
+}) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return { success: false, error: 'Unauthorized' }
+
+    try {
+        const { data, error } = await supabase
+            .from('expenses')
+            .insert({
+                user_id: user.id,
+                amount: payload.amount,
+                category: payload.category,
+                date: payload.date,
+                description: payload.description || '',
+            })
+            .select()
+            .single()
+
+        if (error) throw error
+
+        revalidatePath('/')
+        revalidatePath('/expenses')
+        revalidatePath('/income')
+
+        return { success: true, data }
+    } catch (error: any) {
+        console.error('Failed to create expense:', error)
+        return { success: false, error: error.message }
+    }
+}
+
+export async function updateExpenseAction(id: string, payload: {
+    amount?: number;
+    category?: string;
+    date?: string;
+    description?: string;
+}) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return { success: false, error: 'Unauthorized' }
+
+    try {
+        const { error } = await supabase
+            .from('expenses')
+            .update({
+                ...payload,
+            })
+            .eq('id', id)
+            .eq('user_id', user.id)
+
+        if (error) throw error
+
+        revalidatePath('/')
+        revalidatePath('/expenses')
+        revalidatePath('/income')
+
+        return { success: true }
+    } catch (error: any) {
+        console.error('Failed to update expense:', error)
+        return { success: false, error: error.message }
+    }
+}
+
+export async function deleteExpenseAction(id: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return { success: false, error: 'Unauthorized' }
+
+    try {
+        const { error } = await supabase
+            .from('expenses')
+            .delete()
+            .eq('id', id)
+            .eq('user_id', user.id)
+
+        if (error) throw error
+
+        revalidatePath('/')
+        revalidatePath('/expenses')
+        revalidatePath('/income')
+
+        return { success: true }
+    } catch (error: any) {
+        console.error('Failed to delete expense:', error)
+        return { success: false, error: error.message }
+    }
+}

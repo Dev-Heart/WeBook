@@ -11,6 +11,7 @@ import {
   Settings,
   Menu,
   Clock,
+  Receipt,
 } from "lucide-react"
 
 import {
@@ -57,6 +58,11 @@ const navItems = [
     title: "Income",
     href: "/income",
     icon: DollarSign,
+  },
+  {
+    title: "Expenses",
+    href: "/expenses",
+    icon: Receipt,
   },
   {
     title: "Settings",
@@ -133,19 +139,5 @@ export function AppSidebar() {
         </div>
       </SidebarFooter>
     </Sidebar>
-  )
-}
-
-export function MobileHeader() {
-  return (
-    <header className="flex h-14 items-center gap-4 border-b bg-card px-4 md:hidden">
-      <SidebarTrigger />
-      <div className="flex items-center gap-2">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <span className="text-sm font-bold">W</span>
-        </div>
-        <span className="text-lg font-semibold">WeBook</span>
-      </div>
-    </header>
   )
 }

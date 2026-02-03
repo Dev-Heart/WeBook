@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { Calendar, CheckCircle, Clock, DollarSign, Plus, TrendingUp } from 'lucide-react'
+import { Calendar, CheckCircle, Clock, DollarSign, Plus, TrendingUp, TrendingDown, Receipt } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -23,10 +23,11 @@ export default function DashboardPage() {
   // Real Data State
   const [bookings, setBookings] = useState<any[]>([])
   const [todayBookingsCount, setTodayBookingsCount] = useState(0)
-  const [todayCompletedCount, setTodayCompletedCount] = useState(0)
   const [upcomingCount, setUpcomingCount] = useState(0)
-  const [completedMonthCount, setCompletedMonthCount] = useState(0)
   const [incomeMonth, setIncomeMonth] = useState(0)
+  const [expensesMonth, setExpensesMonth] = useState(0)
+  const [netIncomeMonth, setNetIncomeMonth] = useState(0)
+
   const [incomeData, setIncomeData] = useState<any[]>([])
   const [bookingsData, setBookingsData] = useState<any[]>([])
 
@@ -62,10 +63,25 @@ export default function DashboardPage() {
           .from('bookings')
           .select('*')
           .eq('user_id', user.id)
-          .order('date', { ascending: true }) // Upcoming first?
+          .order('date', { ascending: true })
+
+        // Fetch real expenses (This Month)
+        const today = new Date()
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]
+
+        const { data: expensesData } = await sup
+          .from('expenses')
+          .select('amount')
+          .eq('user_id', user.id)
+          .gte('date', startOfMonth)
+          .lte('date', endOfMonth)
+
+        const totalExpenses = expensesData?.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) || 0
+        setExpensesMonth(totalExpenses)
 
         if (bookingsData) {
-          processBookings(bookingsData)
+          processBookings(bookingsData, totalExpenses)
         }
       } else {
         setProfile(getBusinessProfile())
@@ -73,7 +89,7 @@ export default function DashboardPage() {
       setMounted(true)
     }
 
-    function processBookings(data: any[]) {
+    function processBookings(data: any[], expenses: number) {
       const today = new Date()
       const todayStr = today.toISOString().split('T')[0]
       const currentMonth = today.getMonth()
@@ -82,32 +98,26 @@ export default function DashboardPage() {
       // Today's stats
       const todayItems = data.filter(b => b.date === todayStr)
       setTodayBookingsCount(todayItems.length)
-      setTodayCompletedCount(todayItems.filter(b => b.status === 'completed').length)
 
       // Upcoming (Future dates)
       const upcoming = data.filter(b => {
-        // Simple string comparison works for ISO YYYY-MM-DD
         return b.date > todayStr && (b.status === 'confirmed' || b.status === 'scheduled')
       })
       setUpcomingCount(upcoming.length)
 
-      // Completed Jobs (This Month)
+      // Income (This Month)
       const completedMonth = data.filter(b => {
         const d = new Date(b.date)
         return b.status === 'completed' && d.getMonth() === currentMonth && d.getFullYear() === currentYear
       })
-      setCompletedMonthCount(completedMonth.length)
-
-      // Income (This Month)
       const income = completedMonth.reduce((sum, b) => sum + (Number(b.price) || 0), 0)
       setIncomeMonth(income)
+      setNetIncomeMonth(income - expenses)
 
       // Upcoming List (Top 5)
       const upcomingList = data.filter(b => {
-        // Include today? or just future? "Upcoming bookings" usually implies future + today remaining.
-        // Let's say anything >= today and status != completed/cancelled
         return b.date >= todayStr && b.status !== 'cancelled' && b.status !== 'completed'
-      }).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5) // Sort by date ascending
+      }).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5)
 
       setBookings(upcomingList.map(b => ({
         id: b.id,
@@ -119,8 +129,7 @@ export default function DashboardPage() {
         initials: (b.client_name || 'C').substring(0, 2).toUpperCase()
       })))
 
-      // Chart Data (Simple aggregation if needed, or leave empty if too complex for now - User asked for metrics update primarily)
-      // Let's do simple Monthly Income for the last 6 months
+      // Chart Data
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
       const incomeChart = []
       for (let i = 5; i >= 0; i--) {
@@ -138,11 +147,7 @@ export default function DashboardPage() {
       }
       setIncomeData(incomeChart)
 
-      // Weekly Bookings Chart (This week Mon-Sun)
-      // ... (Simplified logic similar to IncomePage)
-      setBookingsData([]) // Placeholder to avoid crash or complex logic if not strictly required, but "Charts must populate".
-      // Let's attempt simple daily fill for this week
-      // Find start of week
+      // Weekly Bookings Chart
       const dayOfWeek = today.getDay()
       const todayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1
       const startOfWeek = new Date(today)
@@ -153,9 +158,6 @@ export default function DashboardPage() {
       for (let i = 0; i < 7; i++) {
         const current = new Date(startOfWeek)
         current.setDate(startOfWeek.getDate() + i)
-        // Adjust for timezone offset to avoid being one day off in some cases when converting to ISO string
-        // But for simplicity in this frontend logic, we can just use string manipulation or keep UTC
-        // The date in DB is YYYY-MM-DD
         const dStr = current.toISOString().split('T')[0]
 
         const count = data.filter(b => b.date === dStr).length
@@ -174,28 +176,32 @@ export default function DashboardPage() {
 
   const stats = [
     {
-      title: "Today's Bookings",
-      value: String(todayBookingsCount),
-      description: `${todayCompletedCount} completed`,
-      icon: Calendar,
+      title: 'Total Income',
+      value: formatCurrency(incomeMonth, profile?.currency || 'GHS'),
+      description: 'Gross (This month)',
+      icon: DollarSign,
+      color: 'text-foreground'
+    },
+    {
+      title: 'Total Expenses',
+      value: formatCurrency(expensesMonth, profile?.currency || 'GHS'),
+      description: 'This month',
+      icon: Receipt,
+      color: 'text-red-600'
+    },
+    {
+      title: 'Net Income',
+      value: formatCurrency(netIncomeMonth, profile?.currency || 'GHS'),
+      description: 'Income - Expenses',
+      icon: TrendingUp,
+      color: netIncomeMonth >= 0 ? 'text-green-600' : 'text-red-600'
     },
     {
       title: 'Upcoming',
       value: String(upcomingCount),
       description: 'Future scheduled',
       icon: Clock,
-    },
-    {
-      title: 'Completed Jobs',
-      value: String(completedMonthCount),
-      description: 'This month',
-      icon: CheckCircle,
-    },
-    {
-      title: 'Total Income',
-      value: formatCurrency(incomeMonth, profile?.currency || 'GHS'),
-      description: 'This month',
-      icon: DollarSign,
+      color: 'text-foreground'
     },
   ]
 
@@ -259,7 +265,7 @@ export default function DashboardPage() {
               <stat.icon className="size-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
+              <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
               <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
             </CardContent>
           </Card>
