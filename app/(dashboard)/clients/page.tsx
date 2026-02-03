@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { MoreVertical, Phone, Plus, Search, Users, Mail } from "lucide-react"
+import { MoreVertical, Phone, Plus, Search, Users, Mail, Pencil } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -23,26 +23,19 @@ import {
 } from "@/components/ui/table"
 import { SubscriptionStatusAlert } from "@/components/subscription-status-alert"
 import { useSubscription } from "@/components/subscription-provider"
-import { isDemoMode, DEMO_DATA, getBusinessProfile, type Client } from "@/lib/business-data"
+import { getBusinessProfile } from "@/lib/business-data"
 import { AddClientDialog } from "@/components/add-client-dialog"
+import { EditClientDialog } from "@/components/edit-client-dialog"
 import { createClient } from "@/lib/supabase/client"
 
 export default function ClientsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [clients, setClients] = useState<any[]>([])
-  const [showDemo, setShowDemo] = useState(false)
   const [profile, setProfile] = useState<any>(null)
   const { isLocked } = useSubscription()
+  const [editingClient, setEditingClient] = useState<any>(null)
 
   const fetchClients = async () => {
-    const isDemo = isDemoMode()
-    setShowDemo(isDemo)
-
-    if (isDemo) {
-      setClients(DEMO_DATA.clients)
-      return
-    }
-
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
@@ -57,6 +50,8 @@ export default function ClientsPage() {
           ...c,
           initials: c.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
         })))
+      } else {
+        setClients([])
       }
     }
   }
@@ -210,11 +205,11 @@ export default function ClientsPage() {
                           </div>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">{client.totalVisits || client.visits || 0}</TableCell>
-                        <TableCell className="hidden lg:table-cell text-muted-foreground">{client.lastVisit}</TableCell>
+                        <TableCell className="hidden lg:table-cell text-muted-foreground">{client.lastVisit || '-'}</TableCell>
                         <TableCell className="hidden md:table-cell font-medium">{currencySymbol} {client.totalSpent || 0}</TableCell>
                         <TableCell>
                           <Badge variant={statusColors[client.status as keyof typeof statusColors] || "outline"} className="capitalize">
-                            {client.status}
+                            {client.status || 'regular'}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -226,11 +221,10 @@ export default function ClientsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {/* <DropdownMenuItem>View profile</DropdownMenuItem> */}
-                              {/* <DropdownMenuItem>Book appointment</DropdownMenuItem> */}
-                              {/* <DropdownMenuItem>Call client</DropdownMenuItem> */}
-                              {/* <DropdownMenuItem>Edit details</DropdownMenuItem> */}
-                              <DropdownMenuItem disabled>No actions available</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setEditingClient(client)}>
+                                <Pencil className="mr-2 size-4" />
+                                Edit details
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -258,6 +252,16 @@ export default function ClientsPage() {
           )}
         </>
       )}
+
+      {/* Edit Dialog */}
+      <EditClientDialog
+        client={editingClient}
+        open={!!editingClient}
+        onOpenChange={(open) => {
+          if (!open) setEditingClient(null)
+        }}
+        onSuccess={fetchClients}
+      />
     </div>
   )
 }
