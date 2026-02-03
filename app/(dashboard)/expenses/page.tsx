@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, Receipt, Trash2, Pencil, Calendar, ArrowUp, ArrowDown } from "lucide-react"
+import { Plus, CreditCard, Trash2, Pencil, Calendar, ArrowUp, ArrowDown } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -168,7 +168,7 @@ export default function ExpensesPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
-                        <Receipt className="size-4 text-muted-foreground" />
+                        <CreditCard className="size-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses, currencyCode)}</div>
@@ -186,7 +186,7 @@ export default function ExpensesPage() {
                 <CardContent>
                     {expenses.length === 0 ? (
                         <div className="text-center py-12">
-                            <Receipt className="size-12 mx-auto text-muted-foreground/50" />
+                            <CreditCard className="size-12 mx-auto text-muted-foreground/50" />
                             <h3 className="mt-4 text-lg font-medium">No expenses recorded</h3>
                             <p className="text-sm text-muted-foreground mb-4">Add your first expense to start tracking.</p>
                             <Button variant="outline" onClick={handleOpenAdd}>Add Expense</Button>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { Calendar, CheckCircle, Clock, DollarSign, Plus, TrendingUp, TrendingDown, Receipt } from 'lucide-react'
+import { Calendar, CheckCircle, Clock, DollarSign, Plus, TrendingUp, CreditCard } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -33,60 +33,65 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function load() {
-      const sup = createClient()
-      const { data: { user } } = await sup.auth.getUser()
-      setUserId(user?.id || null)
+      try {
+        const sup = createClient()
+        const { data: { user } } = await sup.auth.getUser()
+        setUserId(user?.id || null)
 
-      if (user) {
-        // Fetch real profile from DB
-        const { data: dbProfile } = await sup
-          .from('business_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single()
+        if (user) {
+          // Fetch real profile from DB
+          const { data: dbProfile } = await sup
+            .from('business_profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .single()
 
-        if (dbProfile) {
-          setProfile({
-            name: dbProfile.business_name,
-            type: dbProfile.business_type,
-            city: dbProfile.location_name,
-            country: dbProfile.location_address,
-            currency: dbProfile.currency_display,
-            phone: dbProfile.contact_phone
-          })
+          if (dbProfile) {
+            setProfile({
+              name: dbProfile.business_name,
+              type: dbProfile.business_type,
+              city: dbProfile.location_name,
+              country: dbProfile.location_address,
+              currency: dbProfile.currency_display,
+              phone: dbProfile.contact_phone
+            })
+          } else {
+            setProfile(getBusinessProfile())
+          }
+
+          // Fetch real bookings
+          const { data: bookingsData } = await sup
+            .from('bookings')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('date', { ascending: true })
+
+          // Fetch real expenses (This Month)
+          const today = new Date()
+          const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
+          const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]
+
+          const { data: expensesData } = await sup
+            .from('expenses')
+            .select('amount')
+            .eq('user_id', user.id)
+            .gte('date', startOfMonth)
+            .lte('date', endOfMonth)
+
+          const totalExpenses = expensesData?.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) || 0
+          setExpensesMonth(totalExpenses)
+
+          if (bookingsData) {
+            processBookings(bookingsData, totalExpenses)
+          }
         } else {
           setProfile(getBusinessProfile())
         }
-
-        // Fetch real bookings
-        const { data: bookingsData } = await sup
-          .from('bookings')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('date', { ascending: true })
-
-        // Fetch real expenses (This Month)
-        const today = new Date()
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
-        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]
-
-        const { data: expensesData } = await sup
-          .from('expenses')
-          .select('amount')
-          .eq('user_id', user.id)
-          .gte('date', startOfMonth)
-          .lte('date', endOfMonth)
-
-        const totalExpenses = expensesData?.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) || 0
-        setExpensesMonth(totalExpenses)
-
-        if (bookingsData) {
-          processBookings(bookingsData, totalExpenses)
-        }
-      } else {
-        setProfile(getBusinessProfile())
+      } catch (error) {
+        console.error('Error loading dashboard:', error)
+      } finally {
+        setMounted(true)
       }
-      setMounted(true)
     }
 
     function processBookings(data: any[], expenses: number) {
@@ -186,7 +191,7 @@ export default function DashboardPage() {
       title: 'Total Expenses',
       value: formatCurrency(expensesMonth, profile?.currency || 'GHS'),
       description: 'This month',
-      icon: Receipt,
+      icon: CreditCard,
       color: 'text-red-600'
     },
     {

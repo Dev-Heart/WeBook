@@ -11,7 +11,7 @@ import {
   Settings,
   Menu,
   Clock,
-  Receipt,
+  CreditCard,
 } from "lucide-react"
 
 import {
@@ -62,7 +62,7 @@ const navItems = [
   {
     title: "Expenses",
     href: "/expenses",
-    icon: Receipt,
+    icon: CreditCard,
   },
   {
     title: "Settings",
