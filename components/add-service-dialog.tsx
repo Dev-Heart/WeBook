@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { useState } from 'react'
 import { Plus, Loader2 } from 'lucide-react'
@@ -14,12 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import {
-    getOnboardingData,
-    saveOnboardingData,
-    type Service
-} from '@/lib/business-data'
+import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
 export function AddServiceDialog({
@@ -37,7 +32,6 @@ export function AddServiceDialog({
     const [loading, setLoading] = useState(false)
     const [formData, setFormData] = useState({
         name: '',
-        description: '',
         price: '',
         duration: '',
         category: '',
@@ -47,27 +41,35 @@ export function AddServiceDialog({
         e.preventDefault()
         setLoading(true)
 
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
+            toast.error('You must be logged in to add a service')
+            setLoading(false)
+            return
+        }
+
         try {
-            const onboardingData = getOnboardingData()
-            if (onboardingData) {
-                const newService: Service = {
-                    id: `service-${Date.now()}`,
+            const { error } = await supabase
+                .from('services')
+                .insert({
+                    user_id: user.id,
                     name: formData.name,
                     price: parseFloat(formData.price),
                     duration: parseInt(formData.duration),
-                    category: formData.category,
+                    category: formData.category || 'General',
                     active: true,
-                }
+                })
 
-                onboardingData.services = [...onboardingData.services, newService]
-                saveOnboardingData(onboardingData)
+            if (error) throw error
 
-                toast.success('Service added successfully!')
-                setOpen(false)
-                setFormData({ name: '', description: '', price: '', duration: '', category: '' })
-                if (onSuccess) onSuccess()
-            }
-        } catch (error) {
+            toast.success('Service added successfully!')
+            setOpen(false)
+            setFormData({ name: '', price: '', duration: '', category: '' })
+            if (onSuccess) onSuccess()
+        } catch (error: any) {
+            console.error('Error adding service:', error)
             toast.error('Failed to add service')
         } finally {
             setLoading(false)
@@ -131,15 +133,6 @@ export function AddServiceDialog({
                                 onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                                 placeholder="30"
                                 required
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="description">Description (Optional)</Label>
-                            <Textarea
-                                id="description"
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                placeholder="Briefly describe what this service involves..."
                             />
                         </div>
                     </div>
