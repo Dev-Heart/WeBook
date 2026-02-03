@@ -80,24 +80,28 @@ export function AppSidebar() {
   const pathname = usePathname()
   const { state } = useSidebar()
   const [profile, setProfile] = useState<any>(null)
+  const [isDemo, setIsDemo] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setProfile(getBusinessProfile())
+    setIsDemo(isDemoMode())
+    setMounted(true)
   }, [])
 
-  const businessName = profile?.name || (isDemoMode() ? "Demo Business" : "My Business")
-  const businessType = profile?.type || (isDemoMode() ? "Professional" : "Entrepreneur")
-  const initials = businessName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+  const businessName = profile?.name || (isDemo ? "Demo Business" : "My Business")
+  const businessType = profile?.type || (isDemo ? "Professional" : "Entrepreneur")
+  const initials = mounted ? businessName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : "MB"
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <Link href="/" className="flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <span className="text-lg font-bold">{businessName[0]}</span>
+            <span className="text-lg font-bold">{mounted ? businessName[0] : 'M'}</span>
           </div>
           <span className={`text-xl font-semibold tracking-tight transition-opacity duration-200 ${state === "collapsed" ? "opacity-0" : "opacity-100"}`}>
-            {businessName}
+            {mounted ? businessName : "My Business"}
           </span>
         </Link>
       </SidebarHeader>
@@ -133,11 +137,25 @@ export function AppSidebar() {
             </AvatarFallback>
           </Avatar>
           <div className={`flex-1 transition-opacity duration-200 ${state === "collapsed" ? "hidden" : "block"}`}>
-            <p className="text-sm font-medium leading-tight">{businessName}</p>
-            <p className="text-xs text-muted-foreground">{businessType}</p>
+            <p className="text-sm font-medium leading-tight">{mounted ? businessName : "My Business"}</p>
+            <p className="text-xs text-muted-foreground">{mounted ? businessType : "Entrepreneur"}</p>
           </div>
         </div>
       </SidebarFooter>
     </Sidebar>
+  )
+}
+
+export function MobileHeader() {
+  return (
+    <header className="flex h-14 items-center gap-4 border-b bg-card px-4 md:hidden">
+      <SidebarTrigger />
+      <div className="flex items-center gap-2">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <span className="text-sm font-bold">W</span>
+        </div>
+        <span className="text-lg font-semibold">WeBook</span>
+      </div>
+    </header>
   )
 }
