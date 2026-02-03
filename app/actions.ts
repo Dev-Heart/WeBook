@@ -739,9 +739,9 @@ export async function adminUpdateSubscriptionAction(userId: string, updates: any
         revalidatePath('/admin')
         revalidatePath('/') // Dashboard might change status
         return { success: true }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Admin update failed:', error)
-        return { success: false, error: 'Failed to update subscription' }
+        return { success: false, error: error.message || 'Failed to update subscription' }
     }
 }
 
