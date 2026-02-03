@@ -47,7 +47,7 @@ export function SubscriptionStatusAlert() {
                             className="h-7 bg-white text-black hover:bg-slate-100"
                             asChild
                         >
-                            <a href="mailto:support@webook.com?subject=Subscription Activation Request">
+                            <a href="mailto:Chineacheremh@gmail.com?subject=Subscription Activation Request">
                                 Contact Support to Activate
                             </a>
                         </Button>

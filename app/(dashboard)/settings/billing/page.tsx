@@ -67,8 +67,14 @@ export default function BillingPage() {
                         </ul>
                     </CardContent>
                     <CardFooter>
-                        <Button className="w-full" disabled={plan === 'sa_monthly'}>
-                            {plan === 'sa_monthly' ? 'Active Plan' : 'Upgrade to Standard'}
+                        <Button className="w-full" disabled={plan === 'sa_monthly'} asChild={plan !== 'sa_monthly'}>
+                            {plan === 'sa_monthly' ? (
+                                'Active Plan'
+                            ) : (
+                                <a href="mailto:Chineacheremh@gmail.com?subject=Upgrade to Standard Plan">
+                                    Contact Support to Upgrade
+                                </a>
+                            )}
                         </Button>
                     </CardFooter>
                 </Card>
@@ -94,8 +100,14 @@ export default function BillingPage() {
                         </ul>
                     </CardContent>
                     <CardFooter>
-                        <Button className="w-full" variant="outline" disabled={plan === 'intl_monthly'}>
-                            {plan === 'intl_monthly' ? 'Active Plan' : 'Upgrade to International'}
+                        <Button className="w-full" variant="outline" disabled={plan === 'intl_monthly'} asChild={plan !== 'intl_monthly'}>
+                            {plan === 'intl_monthly' ? (
+                                'Active Plan'
+                            ) : (
+                                <a href="mailto:Chineacheremh@gmail.com?subject=Upgrade to International Plan">
+                                    Contact Support to Upgrade
+                                </a>
+                            )}
                         </Button>
                     </CardFooter>
                 </Card>
