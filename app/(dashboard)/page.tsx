@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { useEffect, useState } from 'react'
 import { Calendar, CheckCircle, Clock, DollarSign, Plus, TrendingUp } from 'lucide-react'
@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getBusinessProfile, isDemoMode, DEMO_DATA } from '@/lib/business-data'
+import { getBusinessProfile } from '@/lib/business-data'
 import { createClient } from '@/lib/supabase/client'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
@@ -14,14 +14,21 @@ import { ShareBookingDialog } from '@/components/share-booking-dialog'
 import { AddClientDialog } from '@/components/add-client-dialog'
 import { AddServiceDialog } from '@/components/add-service-dialog'
 import { AddIncomeDialog } from '@/components/add-income-dialog'
-import { useState as useReactState } from 'react'
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<ReturnType<typeof getBusinessProfile>>(null)
-  const [showDemo, setShowDemo] = useState(false)
   const [mounted, setMounted] = useState(false)
-
   const [userId, setUserId] = useState<string | null>(null)
+
+  // Real Data State
+  const [bookings, setBookings] = useState<any[]>([])
+  const [todayBookingsCount, setTodayBookingsCount] = useState(0)
+  const [todayCompletedCount, setTodayCompletedCount] = useState(0)
+  const [upcomingCount, setUpcomingCount] = useState(0)
+  const [completedMonthCount, setCompletedMonthCount] = useState(0)
+  const [incomeMonth, setIncomeMonth] = useState(0)
+  const [incomeData, setIncomeData] = useState<any[]>([])
+  const [bookingsData, setBookingsData] = useState<any[]>([])
 
   useEffect(() => {
     async function load() {
@@ -46,17 +53,114 @@ export default function DashboardPage() {
             currency: dbProfile.currency_display,
             phone: dbProfile.contact_phone
           })
-          setShowDemo(false)
         } else {
           setProfile(getBusinessProfile())
-          setShowDemo(isDemoMode())
+        }
+
+        // Fetch real bookings
+        const { data: bookingsData } = await sup
+          .from('bookings')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('date', { ascending: true }) // Upcoming first?
+
+        if (bookingsData) {
+          processBookings(bookingsData)
         }
       } else {
         setProfile(getBusinessProfile())
-        setShowDemo(isDemoMode())
       }
       setMounted(true)
     }
+
+    function processBookings(data: any[]) {
+      const today = new Date()
+      const todayStr = today.toISOString().split('T')[0]
+      const currentMonth = today.getMonth()
+      const currentYear = today.getFullYear()
+
+      // Today's stats
+      const todayItems = data.filter(b => b.date === todayStr)
+      setTodayBookingsCount(todayItems.length)
+      setTodayCompletedCount(todayItems.filter(b => b.status === 'completed').length)
+
+      // Upcoming (Future dates)
+      const upcoming = data.filter(b => {
+        // Simple string comparison works for ISO YYYY-MM-DD
+        return b.date > todayStr && (b.status === 'confirmed' || b.status === 'scheduled')
+      })
+      setUpcomingCount(upcoming.length)
+
+      // Completed Jobs (This Month)
+      const completedMonth = data.filter(b => {
+        const d = new Date(b.date)
+        return b.status === 'completed' && d.getMonth() === currentMonth && d.getFullYear() === currentYear
+      })
+      setCompletedMonthCount(completedMonth.length)
+
+      // Income (This Month)
+      const income = completedMonth.reduce((sum, b) => sum + (Number(b.price) || 0), 0)
+      setIncomeMonth(income)
+
+      // Upcoming List (Top 5)
+      const upcomingList = data.filter(b => {
+        // Include today? or just future? "Upcoming bookings" usually implies future + today remaining.
+        // Let's say anything >= today and status != completed/cancelled
+        return b.date >= todayStr && b.status !== 'cancelled' && b.status !== 'completed'
+      }).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5) // Sort by date ascending
+
+      setBookings(upcomingList.map(b => ({
+        id: b.id,
+        client: b.client_name || 'Client',
+        time: b.time || 'All Day',
+        date: b.date,
+        status: b.status,
+        service: b.service_name || 'Service',
+        initials: (b.client_name || 'C').substring(0, 2).toUpperCase()
+      })))
+
+      // Chart Data (Simple aggregation if needed, or leave empty if too complex for now - User asked for metrics update primarily)
+      // Let's do simple Monthly Income for the last 6 months
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+      const incomeChart = []
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1)
+        const mIndex = d.getMonth()
+        const year = d.getFullYear()
+        const label = months[mIndex]
+
+        const monthTotal = data.filter(b => {
+          const bd = new Date(b.date)
+          return b.status === 'completed' && bd.getMonth() === mIndex && bd.getFullYear() === year
+        }).reduce((sum, b) => sum + (Number(b.price) || 0), 0)
+
+        incomeChart.push({ month: label, income: monthTotal })
+      }
+      setIncomeData(incomeChart)
+
+      // Weekly Bookings Chart (This week Mon-Sun)
+      // ... (Simplified logic similar to IncomePage)
+      setBookingsData([]) // Placeholder to avoid crash or complex logic if not strictly required, but "Charts must populate".
+      // Let's attempt simple daily fill for this week
+      // Find start of week
+      const dayOfWeek = today.getDay()
+      const todayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+      const startOfWeek = new Date(today)
+      startOfWeek.setDate(today.getDate() - todayIndex)
+
+      const weekData = []
+      const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+      for (let i = 0; i < 7; i++) {
+        const current = new Date(startOfWeek)
+        current.setDate(startOfWeek.getDate() + i)
+        const dStr = current.toISOString().split('T')[0]
+
+        const count = data.filter(b => b.date === dStr).length
+        weekData.push({ day: dayNames[i], bookings: count })
+      }
+      setBookingsData(weekData)
+    }
+
     load()
   }, [])
 
@@ -73,100 +177,32 @@ export default function DashboardPage() {
             profile?.currency === 'EUR' || profile?.currency === 'eur' ? '€' :
               profile?.currency === 'GBP' || profile?.currency === 'gbp' ? '£' : 'GH₵'
 
-  const stats = showDemo
-    ? [
-      {
-        title: "Today's Bookings",
-        value: String(DEMO_DATA.stats.todayBookings),
-        description: `${DEMO_DATA.stats.todayCompleted} completed, ${DEMO_DATA.stats.todayBookings - DEMO_DATA.stats.todayCompleted} upcoming`,
-        icon: Calendar,
-      },
-      {
-        title: 'Upcoming',
-        value: String(DEMO_DATA.stats.weeklyUpcoming),
-        description: 'This week',
-        icon: Clock,
-      },
-      {
-        title: 'Completed Jobs',
-        value: String(DEMO_DATA.stats.monthlyCompleted),
-        description: 'This month',
-        icon: CheckCircle,
-      },
-      {
-        title: 'Total Income',
-        value: `${currencySymbol} ${DEMO_DATA.stats.monthlyIncome.toLocaleString()}`,
-        description: 'This month',
-        icon: DollarSign,
-      },
-    ]
-    : [
-      {
-        title: "Today's Bookings",
-        value: '0',
-        description: 'No bookings yet',
-        icon: Calendar,
-      },
-      {
-        title: 'Upcoming',
-        value: '0',
-        description: 'This week',
-        icon: Clock,
-      },
-      {
-        title: 'Completed Jobs',
-        value: '0',
-        description: 'This month',
-        icon: CheckCircle,
-      },
-      {
-        title: 'Total Income',
-        value: `${currencySymbol} 0`,
-        description: 'This month',
-        icon: DollarSign,
-      },
-    ]
-
-  const upcomingBookings = showDemo ? DEMO_DATA.bookings : []
-
-  // Chart data placeholders
-  const incomeData = showDemo
-    ? [
-      { month: 'Jan', income: 1200 },
-      { month: 'Feb', income: 1800 },
-      { month: 'Mar', income: 1500 },
-      { month: 'Apr', income: 2200 },
-      { month: 'May', income: 2800 },
-      { month: 'Jun', income: 3100 },
-    ]
-    : [
-      { month: 'Jan', income: 0 },
-      { month: 'Feb', income: 0 },
-      { month: 'Mar', income: 0 },
-      { month: 'Apr', income: 0 },
-      { month: 'May', income: 0 },
-      { month: 'Jun', income: 0 },
-    ]
-
-  const bookingsData = showDemo
-    ? [
-      { day: 'Mon', bookings: 3 },
-      { day: 'Tue', bookings: 5 },
-      { day: 'Wed', bookings: 4 },
-      { day: 'Thu', bookings: 7 },
-      { day: 'Fri', bookings: 6 },
-      { day: 'Sat', bookings: 8 },
-      { day: 'Sun', bookings: 2 },
-    ]
-    : [
-      { day: 'Mon', bookings: 0 },
-      { day: 'Tue', bookings: 0 },
-      { day: 'Wed', bookings: 0 },
-      { day: 'Thu', bookings: 0 },
-      { day: 'Fri', bookings: 0 },
-      { day: 'Sat', bookings: 0 },
-      { day: 'Sun', bookings: 0 },
-    ]
+  const stats = [
+    {
+      title: "Today's Bookings",
+      value: String(todayBookingsCount),
+      description: `${todayCompletedCount} completed`,
+      icon: Calendar,
+    },
+    {
+      title: 'Upcoming',
+      value: String(upcomingCount),
+      description: 'Future scheduled',
+      icon: Clock,
+    },
+    {
+      title: 'Completed Jobs',
+      value: String(completedMonthCount),
+      description: 'This month',
+      icon: CheckCircle,
+    },
+    {
+      title: 'Total Income',
+      value: `${currencySymbol} ${incomeMonth.toLocaleString()}`,
+      description: 'This month',
+      icon: DollarSign,
+    },
+  ]
 
   const firstName = profile?.name?.split(' ')[0] || 'there'
 
@@ -178,9 +214,7 @@ export default function DashboardPage() {
           Good afternoon, {firstName}
         </h1>
         <p className="text-muted-foreground">
-          {showDemo
-            ? "Here's what's happening with your business today."
-            : "Your dashboard is ready. Start by adding your first booking or client."}
+          Here's what's happening with your business today.
         </p>
       </div>
 
@@ -210,7 +244,6 @@ export default function DashboardPage() {
         open={isClientDialogOpen}
         onOpenChange={setIsClientDialogOpen}
         onSuccess={() => {
-          // Dashboard doesn't show clients list directly, but we could refresh stats
           setProfile(getBusinessProfile())
         }}
       />
@@ -245,7 +278,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Income Trend</CardTitle>
             <CardDescription>
-              {showDemo ? 'Your income over the last 6 months' : 'Track your income over time (demo data)'}
+              Your income over the last 6 months
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -285,11 +318,6 @@ export default function DashboardPage() {
                 />
               </AreaChart>
             </ChartContainer>
-            {!showDemo && (
-              <p className="text-xs text-muted-foreground text-center mt-4">
-                Real data will appear here once you start tracking income
-              </p>
-            )}
           </CardContent>
         </Card>
 
@@ -298,7 +326,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Weekly Bookings</CardTitle>
             <CardDescription>
-              {showDemo ? 'Bookings for this week' : 'Track your bookings over time (demo data)'}
+              Bookings for this week
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -330,11 +358,6 @@ export default function DashboardPage() {
                 />
               </BarChart>
             </ChartContainer>
-            {!showDemo && (
-              <p className="text-xs text-muted-foreground text-center mt-4">
-                Real data will appear here once you start accepting bookings
-              </p>
-            )}
           </CardContent>
         </Card>
       </div>
@@ -346,9 +369,9 @@ export default function DashboardPage() {
           <CardDescription>Your next appointments at a glance</CardDescription>
         </CardHeader>
         <CardContent>
-          {upcomingBookings.length > 0 ? (
+          {bookings.length > 0 ? (
             <div className="space-y-4">
-              {upcomingBookings.map((booking) => (
+              {bookings.map((booking) => (
                 <div
                   key={booking.id}
                   className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
@@ -390,25 +413,6 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Quick Tips - Only show when not demo mode */}
-      {!showDemo && (
-        <Card className="bg-primary/5 border-primary/10">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <span className="text-lg">💡</span>
-              </div>
-              <div>
-                <h3 className="font-medium">Quick Tip</h3>
-                <p className="text-sm text-muted-foreground mt-1 text-pretty">
-                  Head to the Bookings section to add your first appointment, or check out Services to manage your offerings.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }
