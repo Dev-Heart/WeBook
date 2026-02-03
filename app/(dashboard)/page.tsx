@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getBusinessProfile } from '@/lib/business-data'
+import { getBusinessProfile, formatCurrency } from '@/lib/business-data'
 import { createClient } from '@/lib/supabase/client'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
@@ -153,6 +153,9 @@ export default function DashboardPage() {
       for (let i = 0; i < 7; i++) {
         const current = new Date(startOfWeek)
         current.setDate(startOfWeek.getDate() + i)
+        // Adjust for timezone offset to avoid being one day off in some cases when converting to ISO string
+        // But for simplicity in this frontend logic, we can just use string manipulation or keep UTC
+        // The date in DB is YYYY-MM-DD
         const dStr = current.toISOString().split('T')[0]
 
         const count = data.filter(b => b.date === dStr).length
@@ -168,14 +171,6 @@ export default function DashboardPage() {
   const [isIncomeDialogOpen, setIsIncomeDialogOpen] = useState(false)
 
   if (!mounted) return null
-
-  const currencySymbol = profile?.currency === 'ZAR' || profile?.currency === 'zar' ? 'R' :
-    profile?.currency === 'GHS' || profile?.currency === 'ghs' ? 'GH₵' :
-      profile?.currency === 'NGN' || profile?.currency === 'ngn' ? '₦' :
-        profile?.currency === 'KES' || profile?.currency === 'kes' ? 'KSh' :
-          profile?.currency === 'USD' || profile?.currency === 'usd' ? '$' :
-            profile?.currency === 'EUR' || profile?.currency === 'eur' ? '€' :
-              profile?.currency === 'GBP' || profile?.currency === 'gbp' ? '£' : 'GH₵'
 
   const stats = [
     {
@@ -198,7 +193,7 @@ export default function DashboardPage() {
     },
     {
       title: 'Total Income',
-      value: `${currencySymbol} ${incomeMonth.toLocaleString()}`,
+      value: formatCurrency(incomeMonth, profile?.currency || 'GHS'),
       description: 'This month',
       icon: DollarSign,
     },

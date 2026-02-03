@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/chart"
 import { Bar, BarChart, XAxis, YAxis } from "recharts"
 import { createClient } from "@/lib/supabase/client"
-import { getBusinessProfile } from "@/lib/business-data"
+import { getBusinessProfile, formatCurrency } from "@/lib/business-data"
 
 export default function IncomePage() {
   const [profile, setProfile] = useState<any>(null)
@@ -35,13 +35,26 @@ export default function IncomePage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const currentProfile = getBusinessProfile()
-        setProfile(currentProfile)
-
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
 
         if (user) {
+          // Fetch real profile from DB to ensure currency is correct
+          const { data: dbProfile } = await supabase
+            .from('business_profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .single()
+
+          if (dbProfile) {
+            setProfile({
+              name: dbProfile.business_name,
+              currency: dbProfile.currency_display,
+            })
+          } else {
+            setProfile(getBusinessProfile())
+          }
+
           const { data: bookings } = await supabase
             .from('bookings')
             .select('*')
@@ -116,6 +129,8 @@ export default function IncomePage() {
             setJobsCompletedState(0)
             setAvgDailyState(0)
           }
+        } else {
+          setProfile(getBusinessProfile())
         }
       } catch (error) {
         console.error('Error loading income data:', error)
@@ -128,24 +143,7 @@ export default function IncomePage() {
 
   if (!mounted) return null
 
-  const getCurrencySymbol = () => {
-    const cur = (profile?.currency || 'USD').toUpperCase()
-    if (cur === 'GHS') return 'GH₵'
-    if (cur === 'NGN') return '₦'
-    if (cur === 'KES') return 'KSh'
-    if (cur === 'ZAR') return 'R'
-    if (cur === 'USD') return '$'
-    if (cur === 'EUR') return '€'
-    if (cur === 'GBP') return '£'
-    if (cur === 'CAD') return 'C$'
-    if (cur === 'AUD') return 'A$'
-    if (cur === 'JPY') return '¥'
-    if (cur === 'CNY') return '¥'
-    if (cur === 'INR') return '₹'
-    return '$'
-  }
-
-  const currencySymbol = getCurrencySymbol()
+  const currencyCode = profile?.currency || 'GHS'
   const weeklyData = weeklyDataState
 
   const chartConfig = {
@@ -186,7 +184,7 @@ export default function IncomePage() {
             <Wallet className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currencySymbol} {totalThisWeekState.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalThisWeekState, currencyCode)}</div>
             <div className="flex items-center gap-1 mt-1">
               <ArrowUp className="size-3 text-chart-1" />
               <span className="text-xs text-chart-1 font-medium">--</span>
@@ -203,7 +201,7 @@ export default function IncomePage() {
             <Calendar className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currencySymbol} {totalThisMonthState.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalThisMonthState, currencyCode)}</div>
             <div className="flex items-center gap-1 mt-1">
               <ArrowUp className="size-3 text-chart-1" />
               <span className="text-xs text-chart-1 font-medium">--</span>
@@ -220,7 +218,7 @@ export default function IncomePage() {
             <TrendingUp className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currencySymbol} {avgDailyState.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(avgDailyState, currencyCode)}</div>
             <p className="text-xs text-muted-foreground mt-1">Based on this week</p>
           </CardContent>
         </Card>
@@ -258,10 +256,10 @@ export default function IncomePage() {
                 tickLine={false}
                 axisLine={false}
                 tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
-                tickFormatter={(value) => `${currencySymbol}${value}`}
+                tickFormatter={(value) => formatCurrency(value, currencyCode)}
               />
               <ChartTooltip
-                content={<ChartTooltipContent labelKey="day" nameKey="income" formatter={(value) => `${currencySymbol} ${value}`} />}
+                content={<ChartTooltipContent labelKey="day" nameKey="income" formatter={(value) => formatCurrency(Number(value), currencyCode)} />}
               />
               <Bar
                 dataKey="income"
@@ -292,9 +290,7 @@ export default function IncomePage() {
                 </div>
                 <div className="text-right">
                   <p className="font-semibold text-chart-1">
-                    {typeof transaction.amount === 'string' && transaction.amount.includes(currencySymbol)
-                      ? transaction.amount
-                      : `${currencySymbol} ${Number(transaction.amount).toLocaleString()}`}
+                    {formatCurrency(Number(transaction.amount), currencyCode)}
                   </p>
                   <p className="text-xs text-muted-foreground">{transaction.date}</p>
                 </div>

@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table"
 import { SubscriptionStatusAlert } from "@/components/subscription-status-alert"
 import { useSubscription } from "@/components/subscription-provider"
-import { getBusinessProfile } from "@/lib/business-data"
+import { getBusinessProfile, formatCurrency } from "@/lib/business-data"
 import { AddClientDialog } from "@/components/add-client-dialog"
 import { EditClientDialog } from "@/components/edit-client-dialog"
 import { createClient } from "@/lib/supabase/client"
@@ -39,52 +39,76 @@ export default function ClientsPage() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      const { data } = await supabase
+      // Fetch profile
+      const { data: dbProfile } = await supabase
+        .from('business_profiles')
+        .select('currency_display')
+        .eq('user_id', user.id)
+        .single()
+
+      const currency = dbProfile?.currency_display || 'GHS'
+      setProfile({ currency })
+
+      // Fetch clients
+      const { data: clientsData } = await supabase
         .from('clients')
         .select('*')
         .eq('user_id', user.id)
         .order('name')
 
-      if (data) {
-        setClients(data.map(c => ({
-          ...c,
-          initials: c.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
-        })))
+      // Fetch completed bookings for stats
+      const { data: bookingsData } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+
+      if (clientsData) {
+        const enrichedClients = clientsData.map(c => {
+          const clientBookings = bookingsData?.filter(b => b.client_id === c.id) || []
+
+          const totalSpent = clientBookings.reduce((sum, b) => sum + (Number(b.price) || 0), 0)
+          const visits = clientBookings.length
+
+          // Find last visit
+          let lastVisit = '-'
+          if (clientBookings.length > 0) {
+            // Sort by date desc
+            const dates = clientBookings.map(b => b.date).sort().reverse()
+            if (dates[0]) {
+              const d = new Date(dates[0])
+              // Format as DD/MM/YYYY
+              const day = String(d.getDate()).padStart(2, '0')
+              const month = String(d.getMonth() + 1).padStart(2, '0')
+              const year = d.getFullYear()
+              lastVisit = `${day}/${month}/${year}`
+            }
+          }
+
+          return {
+            ...c,
+            initials: c.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+            totalSpent,
+            visits, // Override database visits? Yes, for dynamic accuracy.
+            lastVisit
+          }
+        })
+        setClients(enrichedClients)
       } else {
         setClients([])
       }
     }
   }
 
-  const fetchProfile = async () => {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data } = await supabase
-        .from('business_profiles')
-        .select('currency_display')
-        .eq('user_id', user.id)
-        .single()
-      if (data) setProfile({ currency: data.currency_display })
-    }
-  }
-
   useEffect(() => {
     fetchClients()
-    fetchProfile()
   }, [])
 
   const filteredClients = clients.filter((client) =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const currencySymbol = profile?.currency === 'zar' || profile?.currency === 'ZAR' ? 'R' :
-    profile?.currency === 'ghs' || profile?.currency === 'GHS' ? 'GH₵' :
-      profile?.currency === 'ngn' || profile?.currency === 'NGN' ? '₦' :
-        profile?.currency === 'kes' || profile?.currency === 'KES' ? 'KSh' :
-          profile?.currency === 'usd' || profile?.currency === 'USD' ? '$' :
-            profile?.currency === 'eur' || profile?.currency === 'EUR' ? '€' :
-              profile?.currency === 'gbp' || profile?.currency === 'GBP' ? '£' : 'GH₵'
+  const currencyCode = profile?.currency || 'GHS'
 
   const statusColors = {
     new: "secondary",
@@ -204,9 +228,9 @@ export default function ClientsPage() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell">{client.totalVisits || client.visits || 0}</TableCell>
-                        <TableCell className="hidden lg:table-cell text-muted-foreground">{client.lastVisit || '-'}</TableCell>
-                        <TableCell className="hidden md:table-cell font-medium">{currencySymbol} {client.totalSpent || 0}</TableCell>
+                        <TableCell className="hidden md:table-cell">{client.visits || 0}</TableCell>
+                        <TableCell className="hidden lg:table-cell text-muted-foreground">{client.lastVisit}</TableCell>
+                        <TableCell className="hidden md:table-cell font-medium">{formatCurrency(client.totalSpent || 0, currencyCode)}</TableCell>
                         <TableCell>
                           <Badge variant={statusColors[client.status as keyof typeof statusColors] || "outline"} className="capitalize">
                             {client.status || 'regular'}

@@ -65,10 +65,10 @@ const STORAGE_KEY = 'hustle_onboarding'
 
 export function getOnboardingData(): OnboardingData | null {
   if (typeof window === 'undefined') return null
-  
+
   const data = localStorage.getItem(STORAGE_KEY)
   if (!data) return null
-  
+
   try {
     return JSON.parse(data)
   } catch {
@@ -152,7 +152,7 @@ export function getClients(): Client[] {
 
 export function saveClient(clientData: { name: string; phone: string; email?: string }): Client {
   const clients = getClients()
-  
+
   // Check if client exists by phone
   const existingClient = clients.find(c => c.phone === clientData.phone)
   if (existingClient) {
@@ -161,7 +161,7 @@ export function saveClient(clientData: { name: string; phone: string; email?: st
     localStorage.setItem(CLIENTS_KEY, JSON.stringify(clients))
     return existingClient
   }
-  
+
   // Create new client
   const newClient: Client = {
     id: Date.now().toString(),
@@ -180,6 +180,26 @@ export function saveClient(clientData: { name: string; phone: string; email?: st
 
 export function getActiveServices(): Service[] {
   return getServices().filter(s => s.active)
+}
+
+// Currency helper
+export function getCurrencySymbol(currencyCode: string): string {
+  const code = currencyCode?.toUpperCase() || 'GHS'
+  switch (code) {
+    case 'GHS': return 'GH₵'
+    case 'ZAR': return 'R'
+    case 'USD': return '$'
+    case 'EUR': return '€'
+    case 'GBP': return '£'
+    case 'NGN': return '₦'
+    case 'KES': return 'KSh'
+    default: return code
+  }
+}
+
+export function formatCurrency(amount: number, currencyCode: string): string {
+  const symbol = getCurrencySymbol(currencyCode)
+  return `${symbol} ${amount.toLocaleString()}`
 }
 
 // Demo data

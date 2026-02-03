@@ -1,14 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Bell, Globe, Lock, MapPin, Phone, User, Loader2 } from "lucide-react"
+import { Bell, Globe, Lock, MapPin, Phone, User, Loader2, LogOut } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Textarea } from "@/components/ui/textarea"
+import { useRouter } from "next/navigation"
 import {
   Select,
   SelectContent,
@@ -23,8 +23,10 @@ import { toast } from "sonner"
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const [profile, setProfile] = useState<any>(null)
   const [formData, setFormData] = useState<any>({})
+  const router = useRouter()
 
   useEffect(() => {
     async function loadProfile() {
@@ -72,6 +74,13 @@ export default function SettingsPage() {
       toast.error(result.error || 'Failed to update settings')
     }
     setSaving(false)
+  }
+
+  const handleSignOut = async () => {
+    setSigningOut(true)
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/auth/login')
   }
 
   if (loading) {
@@ -287,6 +296,39 @@ export default function SettingsPage() {
             Save Changes
           </Button>
         </CardFooter>
+      </Card>
+
+      {/* Account Actions */}
+      <Card className="border-destructive/20 bg-destructive/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <LogOut className="size-5" />
+            Account Actions
+          </CardTitle>
+          <CardDescription>Manage your session</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            Sign out of your account on this device. You will need to sign in again to access your business data.
+          </p>
+          <Button
+            variant="destructive"
+            onClick={handleSignOut}
+            disabled={signingOut}
+          >
+            {signingOut ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Signing out...
+              </>
+            ) : (
+              <>
+                <LogOut className="mr-2 size-4" />
+                Log Out
+              </>
+            )}
+          </Button>
+        </CardContent>
       </Card>
 
       <div className="text-center text-sm text-muted-foreground py-6">
