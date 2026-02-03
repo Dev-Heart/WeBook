@@ -54,6 +54,13 @@ export async function getSubscriptionStatus() {
 
 import { createAdminClient } from '@/lib/supabase/admin'
 
+export const ADMIN_EMAILS = process.env.ADMIN_EMAILS?.split(',') || ['dev.divineheart@gmail.com', 'admin@webook.com']
+
+export function checkIsAdmin(email?: string | null) {
+    if (!email) return false
+    return ADMIN_EMAILS.includes(email)
+}
+
 export async function createTrialSubscription(userId: string) {
     const supabase = createAdminClient()
 
@@ -81,5 +88,22 @@ export async function createTrialSubscription(userId: string) {
         throw error
     }
 
+    return data
+}
+
+export async function updateSubscription(userId: string, updates: Partial<Subscription>) {
+    const supabase = createAdminClient()
+
+    const { data, error } = await supabase
+        .from('subscriptions')
+        .update({
+            ...updates,
+            updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .select()
+        .single()
+
+    if (error) throw error
     return data
 }

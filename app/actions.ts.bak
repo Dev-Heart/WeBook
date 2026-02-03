@@ -712,7 +712,6 @@ export async function deleteExpenseAction(id: string) {
         return { success: false, error: error.message }
     }
 }
-
 // -----------------------------------------------------------------------------
 // ADMIN ACTIONS
 // -----------------------------------------------------------------------------
@@ -742,62 +741,5 @@ export async function adminUpdateSubscriptionAction(userId: string, updates: any
     } catch (error) {
         console.error('Admin update failed:', error)
         return { success: false, error: 'Failed to update subscription' }
-    }
-}
-
-export async function getAdminAllDataAction() {
-    const { isAdmin } = await getAdminStatusAction()
-    if (!isAdmin) return { success: false, error: 'Unauthorized' }
-
-    const supabase = createAdminClient()
-
-    try {
-        // 1. Get Profiles
-        const { data: profiles, error: profError } = await supabase
-            .from('business_profiles')
-            .select('*')
-
-        if (profError) throw profError
-
-        // 2. Get Subscriptions
-        const { data: subs, error: subError } = await supabase
-            .from('subscriptions')
-            .select('*')
-
-        if (subError) throw subError
-
-        // 3. Get Users for Emails
-        const { data: { users }, error: userError } = await supabase.auth.admin.listUsers()
-
-        if (userError) throw userError
-
-        const combined = profiles?.map(p => {
-            const sub = subs?.find(s => s.user_id === p.user_id)
-            const user = users?.find(u => u.id === p.user_id)
-
-            // Days Calc
-            let days = 0
-            if (sub) {
-                const now = new Date()
-                const end = new Date(sub.current_period_end)
-                days = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
-            }
-
-            return {
-                user_id: p.user_id,
-                business_name: p.business_name,
-                city: p.location_name,
-                email: user?.email || 'Unknown',
-                sub_status: sub?.status || 'none',
-                sub_plan: sub?.plan,
-                sub_end: sub?.current_period_end,
-                days_remaining: days
-            }
-        })
-
-        return { success: true, data: combined || [] }
-    } catch (error: any) {
-        console.error('Admin data fetch failed:', error)
-        return { success: false, error: error.message }
     }
 }
