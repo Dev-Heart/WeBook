@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createTrialSubscription, getSubscription, TRIAL_DAYS } from '@/lib/subscription'
 import { revalidatePath } from 'next/cache'
+import { notificationService } from '@/lib/notifications/service'
 
 export async function startTrialAction() {
     const supabase = await createClient()
@@ -135,17 +136,11 @@ export async function checkBookingAvailability(userId: string) {
 
     if (error) {
         console.error('Error checking subscription status:', error)
-        // Fail safe: if RPC is missing (dev mode), maybe allow? 
-        // But requirement says "Lock". So we return false.
-        // However, if the user hasn't run the migration yet, everything breaks.
-        // Let's return false to be safe and strictly adhere to "Lock features".
         return false
     }
 
     return !!data
 }
-
-import { notificationService } from '@/lib/notifications/service'
 
 export async function createBooking(payload: {
     userId: string
@@ -163,13 +158,63 @@ export async function createBooking(payload: {
     const supabase = createAdminClient()
 
     try {
-        // 1. Create booking
+        // 1. Find or Create Client FIRST to link properly
+        let clientId: string | null = null
+
+        // Check for existing client
+        const { data: existingClient, error: clientFetchError } = await supabase
+            .from('clients')
+            .select('*')
+            .eq('user_id', payload.userId)
+            .eq('phone', payload.clientPhone)
+            .single()
+
+        if (clientFetchError && clientFetchError.code !== 'PGRST116') {
+            console.error('Client fetch error:', clientFetchError)
+        }
+
+        if (existingClient) {
+            clientId = existingClient.id
+            // Update stats
+            const { error: clientUpdateError } = await supabase
+                .from('clients')
+                .update({
+                    visits: existingClient.visits + 1,
+                    last_visit: payload.date,
+                })
+                .eq('id', existingClient.id)
+            if (clientUpdateError) console.error('Client update error:', clientUpdateError)
+        } else {
+            // Create new client
+            const { data: newClient, error: clientInsertError } = await supabase
+                .from('clients')
+                .insert({
+                    user_id: payload.userId,
+                    name: payload.clientName,
+                    phone: payload.clientPhone,
+                    email: payload.clientEmail,
+                    visits: 1,
+                    total_spent: 0,
+                    vip: false,
+                })
+                .select()
+                .single()
+
+            if (clientInsertError) {
+                console.error('Client insert error:', clientInsertError)
+            } else if (newClient) {
+                clientId = newClient.id
+            }
+        }
+
+        // 2. Create booking with client_id linked
         const { data: booking, error: bookingError } = await supabase
             .from('bookings')
             .insert({
                 user_id: payload.userId,
                 service_id: payload.serviceId,
                 service_name: payload.serviceName,
+                client_id: clientId, // Linked
                 client_name: payload.clientName,
                 client_phone: payload.clientPhone,
                 client_email: payload.clientEmail,
@@ -191,43 +236,6 @@ export async function createBooking(payload: {
 
         if (!booking) {
             return { success: false, error: 'Failed to retrieve created booking' }
-        }
-
-        // 2. Create or update client
-        const { data: existingClient, error: clientFetchError } = await supabase
-            .from('clients')
-            .select('*')
-            .eq('user_id', payload.userId)
-            .eq('phone', payload.clientPhone)
-            .single()
-
-        if (clientFetchError && clientFetchError.code !== 'PGRST116') {
-            console.error('Client fetch error:', clientFetchError)
-            // Continue even if client fetch fails, as booking is created
-        }
-
-        if (existingClient) {
-            const { error: clientUpdateError } = await supabase
-                .from('clients')
-                .update({
-                    visits: existingClient.visits + 1,
-                    last_visit: payload.date,
-                })
-                .eq('id', existingClient.id)
-            if (clientUpdateError) console.error('Client update error:', clientUpdateError)
-        } else {
-            const { error: clientInsertError } = await supabase
-                .from('clients')
-                .insert({
-                    user_id: payload.userId,
-                    name: payload.clientName,
-                    phone: payload.clientPhone,
-                    email: payload.clientEmail,
-                    visits: 1,
-                    total_spent: 0,
-                    vip: false,
-                })
-            if (clientInsertError) console.error('Client insert error:', clientInsertError)
         }
 
         // 3. Send Notification (Async, don't block response if it fails)
@@ -253,7 +261,6 @@ export async function createBooking(payload: {
             })
         } catch (notifError: any) {
             console.error('Notification failed:', notifError)
-            // Don't fail the whole request for notification errors
         }
 
         revalidatePath('/')
@@ -274,7 +281,6 @@ export async function cancelBookingAction(bookingId: string) {
     }
 
     try {
-        // 1. Get booking details for notification (and verify ownership)
         const { data: booking, error: fetchError } = await supabase
             .from('bookings')
             .select(`
@@ -289,7 +295,6 @@ export async function cancelBookingAction(bookingId: string) {
             return { success: false, error: 'Booking not found' }
         }
 
-        // 2. Update status
         const { error: updateError } = await supabase
             .from('bookings')
             .update({ status: 'cancelled' })
@@ -297,8 +302,6 @@ export async function cancelBookingAction(bookingId: string) {
 
         if (updateError) throw updateError
 
-        // 3. Send Notification
-        // We handle business_profiles relation or fallback
         // @ts-ignore
         const businessName = booking.business_profiles?.business_name || 'Business'
 
@@ -387,6 +390,7 @@ export async function getSubscriptionStatusAction() {
         subscription: sub
     }
 }
+
 export async function updateBusinessProfileAction(payload: {
     business_name?: string;
     business_type?: string;
@@ -430,11 +434,9 @@ export async function updateBusinessProfileAction(payload: {
 }
 
 export async function getPublicBusinessDataAction(userId: string) {
-    // Use Admin Client to bypass RLS for public booking page
     const supabase = createAdminClient()
 
     try {
-        // 1. Check availability/subscription lock
         const { data: isAvailable, error: rpcError } = await supabase.rpc('is_subscription_active', {
             target_user_id: userId
         })
@@ -448,7 +450,6 @@ export async function getPublicBusinessDataAction(userId: string) {
             return { isUnavailable: true }
         }
 
-        // 2. Fetch Profile
         const { data: profile } = await supabase
             .from('business_profiles')
             .select('*')
@@ -459,7 +460,6 @@ export async function getPublicBusinessDataAction(userId: string) {
             return { error: 'Business not found' }
         }
 
-        // 3. Fetch Services
         const { data: services } = await supabase
             .from('services')
             .select('*')
@@ -467,7 +467,6 @@ export async function getPublicBusinessDataAction(userId: string) {
             .eq('active', true)
             .order('price')
 
-        // 4. Fetch Availability
         const { data: availability } = await supabase
             .from('availability_settings')
             .select('*')
@@ -507,5 +506,79 @@ export async function getAvailableSlotsAction(userId: string, dateStr: string) {
     } catch (error) {
         console.error('Error fetching slots:', error)
         return { bookedTimes: [] }
+    }
+}
+
+export async function repairClientStatsAction() {
+    const supabase = createAdminClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+        return { success: false, error: 'Unauthorized' }
+    }
+
+    try {
+        // 1. Fetch bookings with missing client_id
+        const { data: bookings, error: fetchError } = await supabase
+            .from('bookings')
+            .select('*')
+            .eq('user_id', user.id)
+            .is('client_id', null)
+
+        if (fetchError) throw fetchError
+
+        const bookingsToRepair = bookings || []
+        let repairedCount = 0
+
+        // 2. Iterate and fix
+        for (const booking of bookingsToRepair) {
+            if (!booking.client_phone) continue
+
+            // Find client using phone (which is unique per user usually, but just in case, per user context)
+            const { data: client } = await supabase
+                .from('clients')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('phone', booking.client_phone)
+                .maybeSingle() // Use maybeSingle to avoid 406 if multiple
+
+            let clientId = client?.id
+
+            // Create if missing and we have enough info
+            if (!clientId && booking.client_name) {
+                const { data: newClient } = await supabase
+                    .from('clients')
+                    .insert({
+                        user_id: user.id,
+                        name: booking.client_name || 'Client',
+                        phone: booking.client_phone,
+                        email: booking.client_email,
+                        visits: 0,
+                        total_spent: 0,
+                        vip: false
+                    })
+                    .select('id')
+                    .single()
+
+                clientId = newClient?.id
+            }
+
+            // Update Booking
+            if (clientId) {
+                const { error: updateError } = await supabase
+                    .from('bookings')
+                    .update({ client_id: clientId })
+                    .eq('id', booking.id)
+
+                if (!updateError) repairedCount++
+            }
+        }
+
+        revalidatePath('/clients')
+        return { success: true, count: repairedCount, message: `Repaired ${repairedCount} bookings` }
+
+    } catch (error: any) {
+        console.error('Repair failed:', error)
+        return { success: false, error: 'Failed to repair data' }
     }
 }

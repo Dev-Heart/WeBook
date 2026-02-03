@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Bell, Globe, Lock, MapPin, Phone, User, Loader2, LogOut } from "lucide-react"
+import { Bell, Globe, Lock, MapPin, Phone, User, Loader2, LogOut, RotateCw, RefreshCw } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -17,13 +17,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { createClient } from "@/lib/supabase/client"
-import { updateBusinessProfileAction } from "@/app/actions"
+import { updateBusinessProfileAction, repairClientStatsAction } from "@/app/actions"
 import { toast } from "sonner"
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [repairing, setRepairing] = useState(false)
   const [profile, setProfile] = useState<any>(null)
   const [formData, setFormData] = useState<any>({})
   const router = useRouter()
@@ -81,6 +82,22 @@ export default function SettingsPage() {
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/auth/login')
+  }
+
+  const handleRepair = async () => {
+    setRepairing(true)
+    try {
+      const result = await repairClientStatsAction()
+      if (result.success) {
+        toast.success(result.message || 'Data repaired successfully')
+      } else {
+        toast.error(result.error || 'Failed to repair data')
+      }
+    } catch (error) {
+      toast.error('An unexpected error occurred')
+    } finally {
+      setRepairing(false)
+    }
   }
 
   if (loading) {
@@ -325,6 +342,39 @@ export default function SettingsPage() {
               <>
                 <LogOut className="mr-2 size-4" />
                 Log Out
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Troubleshooting */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <RotateCw className="size-5" />
+            Troubleshooting
+          </CardTitle>
+          <CardDescription>Fix issues with your data</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            If you are missing client statistics (Total Spent, Last Visit) for past bookings, run this tool to attempt to link them.
+          </p>
+          <Button
+            variant="outline"
+            onClick={handleRepair}
+            disabled={repairing}
+          >
+            {repairing ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Repairing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 size-4" />
+                Repair Client Data
               </>
             )}
           </Button>
