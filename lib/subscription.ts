@@ -107,3 +107,11 @@ export async function updateSubscription(userId: string, updates: Partial<Subscr
     if (error) throw error
     return data
 }
+// ... (existing updateSubscription)
+
+export async function ensureSubscriptionActive() {
+    const { isLocked } = await getSubscriptionStatus()
+    if (isLocked) {
+        throw new Error("Subscription expired. Please upgrade to continue.")
+    }
+}

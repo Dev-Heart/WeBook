@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createTrialSubscription, getSubscription, TRIAL_DAYS } from '@/lib/subscription'
+import { createTrialSubscription, getSubscription, TRIAL_DAYS, ensureSubscriptionActive } from '@/lib/subscription'
 import { revalidatePath } from 'next/cache'
 import { notificationService } from '@/lib/notifications/service'
 
@@ -158,6 +158,8 @@ export async function createBooking(payload: {
     const supabase = createAdminClient()
 
     try {
+        await ensureSubscriptionActive() // Enforce subscription check
+
         // 1. Find or Create Client FIRST to link properly
         let clientId: string | null = null
 
@@ -629,6 +631,7 @@ export async function createExpenseAction(payload: {
     if (!user) return { success: false, error: 'Unauthorized' }
 
     try {
+        await ensureSubscriptionActive() // Enforce subscription check
         const { data, error } = await supabase
             .from('expenses')
             .insert({
@@ -666,6 +669,7 @@ export async function updateExpenseAction(id: string, payload: {
     if (!user) return { success: false, error: 'Unauthorized' }
 
     try {
+        await ensureSubscriptionActive() // Enforce subscription check
         const { error } = await supabase
             .from('expenses')
             .update({
@@ -694,6 +698,7 @@ export async function deleteExpenseAction(id: string) {
     if (!user) return { success: false, error: 'Unauthorized' }
 
     try {
+        await ensureSubscriptionActive() // Enforce subscription check
         const { error } = await supabase
             .from('expenses')
             .delete()
