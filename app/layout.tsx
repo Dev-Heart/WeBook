@@ -6,6 +6,7 @@ import { OnboardingGate } from '@/components/onboarding-gate'
 import { SubscriptionProvider } from '@/components/subscription-provider'
 import { Toaster } from "@/components/ui/sonner"
 import { OfflineIndicator } from '@/components/offline-indicator'
+import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -57,6 +58,7 @@ export default function RootLayout({
           </SubscriptionProvider>
         </OnboardingGate>
         <Analytics />
+        <PWAInstallPrompt />
       </body>
     </html>
   )

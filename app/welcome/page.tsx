@@ -4,26 +4,14 @@ import Link from 'next/link'
 import { ArrowRight, CheckCircle, Rocket, Users, Shield, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { saveOnboardingData } from '@/lib/business-data'
+import { Badge } from '@/components/ui/badge'
 import { useRouter } from 'next/navigation'
 
 export default function WelcomePage() {
     const router = useRouter()
 
     const handleViewDemo = () => {
-        saveOnboardingData({
-            completed: true,
-            isDemoMode: true,
-            services: [],
-            preferences: {
-                currencyDisplay: 'symbol',
-                taxMode: 'inclusive',
-                whatsappNotifications: true,
-                bookingConfirmationRequired: true,
-                softReminders: true,
-            }
-        })
-        window.location.href = '/'
+        router.push('/demo')
     }
 
     return (
@@ -108,5 +96,3 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode, titl
         </Card>
     )
 }
-
-import { Badge } from '@/components/ui/badge'
