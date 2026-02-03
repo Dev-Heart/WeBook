@@ -54,7 +54,7 @@ export async function getSubscriptionStatus() {
 
 import { createAdminClient } from '@/lib/supabase/admin'
 
-export const ADMIN_EMAILS = process.env.ADMIN_EMAILS?.split(',') || ['dev.divineheart@gmail.com', 'admin@webook.com']
+export const ADMIN_EMAILS = process.env.ADMIN_EMAILS?.split(',') || ['dev.divineheart@gmail.com', 'admin@webook.com', 'chineacheremh@gmail.com']
 
 export function checkIsAdmin(email?: string | null) {
     if (!email) return false
