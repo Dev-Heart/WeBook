@@ -45,17 +45,11 @@ export function SubscriptionStatusAlert() {
                             variant="default"
                             size="sm"
                             className="h-7 bg-white text-black hover:bg-slate-100"
-                            onClick={async () => {
-                                const { startTrialAction } = await import('@/app/actions')
-                                const res = await startTrialAction()
-                                if (res.success) {
-                                    window.location.reload()
-                                } else {
-                                    alert(res.error || 'Failed to activate trial')
-                                }
-                            }}
+                            asChild
                         >
-                            Activate Trial
+                            <a href="mailto:support@webook.com?subject=Subscription Activation Request">
+                                Contact Support to Activate
+                            </a>
                         </Button>
                         <Button variant="outline" size="sm" className="h-7 bg-white/10 hover:bg-white/20 border-white/20" asChild>
                             <Link href="/settings/billing">Billing</Link>
