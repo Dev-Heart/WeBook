@@ -145,7 +145,7 @@ export default function AdminPage() {
                                             size="sm"
                                             variant="outline"
                                             className="h-8 border-green-200 hover:bg-green-50 text-green-700"
-                                            onClick={() => updateStatus(biz.user_id, 'active', 'monthly')}
+                                            onClick={() => updateStatus(biz.user_id, 'active', 'sa_monthly')}
                                         >
                                             <CheckCircle className="size-3 mr-1" />
                                             Activate
