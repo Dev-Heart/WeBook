@@ -85,7 +85,29 @@ export default function DashboardPage() {
             processBookings(bookingsData, totalExpenses)
           }
         } else {
+          // Demo mode - load from localStorage
           setProfile(getBusinessProfile())
+
+          // Load demo bookings from localStorage
+          const storedBookings = localStorage.getItem('hustle_bookings')
+          if (storedBookings) {
+            try {
+              const demoBookings = JSON.parse(storedBookings)
+              // Transform to match expected format
+              const transformedBookings = demoBookings.map((b: any) => ({
+                id: b.id,
+                date: b.date,
+                time: b.time,
+                status: b.status,
+                client_name: b.clientName,
+                service_name: b.serviceName,
+                price: 0 // Demo bookings don't have prices in localStorage format
+              }))
+              processBookings(transformedBookings, 0) // No expenses in demo mode
+            } catch (e) {
+              console.error('Error loading demo bookings:', e)
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading dashboard:', error)

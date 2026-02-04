@@ -32,14 +32,15 @@ export async function middleware(request: NextRequest) {
 
   const isAuthPage = nextUrl.pathname.startsWith('/auth')
   const isWelcomePage = nextUrl.pathname === '/welcome'
-  const isPublicPage = nextUrl.pathname.startsWith('/book') || nextUrl.pathname.startsWith('/api/public')
+  const isPublicPage = nextUrl.pathname.startsWith('/book') || nextUrl.pathname.startsWith('/api/public') || nextUrl.pathname === '/demo'
 
   if (!user && !isAuthPage && !isWelcomePage && !isPublicPage && nextUrl.pathname !== '/') {
     return NextResponse.redirect(new URL('/welcome', request.url))
   }
 
   if (!user && nextUrl.pathname === '/') {
-    return NextResponse.redirect(new URL('/welcome', request.url))
+    // Allow access to root for demo mode - dashboard will check localStorage
+    return response
   }
 
   if (user && (isAuthPage || isWelcomePage)) {
