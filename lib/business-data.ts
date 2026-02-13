@@ -51,6 +51,7 @@ export interface Booking {
   notes?: string
   status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
   createdAt: string
+  price: number
 }
 
 export interface OnboardingData {

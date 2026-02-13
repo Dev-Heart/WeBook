@@ -130,7 +130,85 @@ export default function IncomePage() {
             setAvgDailyState(0)
           }
         } else {
+          // Demo Mode
           setProfile(getBusinessProfile())
+          const storedBookings = localStorage.getItem('hustle_bookings')
+          if (storedBookings) {
+            try {
+              const demoBookings = JSON.parse(storedBookings)
+              // Filter for completed/confirmed bookings that act as income
+              // In demo data we treat 'confirmed' as income too for visualization if needed,
+              // but strictly income usually means 'completed'.
+              // Let's include 'confirmed' for demo purposes so charts look good, or just 'completed' if data has it.
+              // checking demo data... it has 'confirmed', 'scheduled'.
+              // The previous dashboard logic treated 'completed' as income.
+              // Let's map and pretend 'confirmed' is also income for demo vibrancy if 'completed' is scarce.
+              // Actually demo data has some 'confirmed' in past?
+              // calculated fields...
+
+              const validBookings = demoBookings
+                .filter((b: any) => b.status === 'confirmed' || b.status === 'completed')
+                .map((b: any) => ({
+                  id: b.id,
+                  client_name: b.clientName,
+                  service_name: b.serviceName,
+                  price: b.price || 0,
+                  date: b.date,
+                  status: 'completed' // normalize for stats
+                }))
+                .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+              if (validBookings.length > 0) {
+                setTransactions(validBookings.slice(0, 10).map((b: any) => ({
+                  id: b.id,
+                  client: b.client_name,
+                  service: b.service_name,
+                  amount: b.price,
+                  date: b.date,
+                  status: 'received'
+                })))
+
+                // Calculate Weekly Data (Same logic as real data)
+                const today = new Date()
+                const dayOfWeek = today.getDay()
+                const todayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+                const startOfWeek = new Date(today)
+                startOfWeek.setDate(today.getDate() - todayIndex)
+                startOfWeek.setHours(0, 0, 0, 0)
+
+                const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+                const weeklyStats = days.map((day, index) => {
+                  const targetDate = new Date(startOfWeek)
+                  targetDate.setDate(startOfWeek.getDate() + index)
+                  const dateStr = targetDate.toISOString().split('T')[0]
+                  const dayIncome = validBookings
+                    .filter((b: any) => b.date === dateStr)
+                    .reduce((sum: number, b: any) => sum + (Number(b.price) || 0), 0)
+                  return { day, income: dayIncome }
+                })
+
+                setWeeklyDataState(weeklyStats)
+
+                // Totals
+                const thisWeekTotal = validBookings.filter((b: any) => b.date >= startOfWeek.toISOString().split('T')[0])
+                  .reduce((sum: number, b: any) => sum + (Number(b.price) || 0), 0)
+                setTotalThisWeekState(thisWeekTotal)
+
+                const thisMonthTotal = validBookings.filter((b: any) => {
+                  const d = new Date(b.date)
+                  return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
+                }).reduce((sum: number, b: any) => sum + (Number(b.price) || 0), 0)
+                setTotalThisMonthState(thisMonthTotal)
+
+                setJobsCompletedState(validBookings.length)
+
+                const daysPassed = todayIndex + 1
+                setAvgDailyState(daysPassed > 0 ? Math.round(thisWeekTotal / daysPassed) : 0)
+              }
+            } catch (e) {
+              console.error('Error processing demo income:', e)
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading income data:', error)

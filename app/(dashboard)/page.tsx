@@ -78,7 +78,7 @@ export default function DashboardPage() {
             .gte('date', startOfMonth)
             .lte('date', endOfMonth)
 
-          const totalExpenses = expensesData?.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) || 0
+          const totalExpenses = expensesData?.reduce((sum: number, e: { amount: any }) => sum + (Number(e.amount) || 0), 0) || 0
           setExpensesMonth(totalExpenses)
 
           if (bookingsData) {
@@ -101,7 +101,7 @@ export default function DashboardPage() {
                 status: b.status,
                 client_name: b.clientName,
                 service_name: b.serviceName,
-                price: 0 // Demo bookings don't have prices in localStorage format
+                price: b.price || 0 // Use price from demo data
               }))
               processBookings(transformedBookings, 0) // No expenses in demo mode
             } catch (e) {

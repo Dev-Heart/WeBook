@@ -38,7 +38,7 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
       setIsComplete(complete || demo)
       setLoading(false)
 
-      const isPublicPath = pathname === '/welcome' || pathname.startsWith('/auth') || pathname.startsWith('/book')
+      const isPublicPath = pathname === '/welcome' || pathname.startsWith('/auth') || pathname.startsWith('/book') || pathname === '/demo'
 
       if (!session && !demo && !isPublicPath) {
         router.push('/welcome')
@@ -71,7 +71,7 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   }
 
   // Allow public pages always
-  const isPublicPage = pathname === '/welcome' || pathname.startsWith('/auth') || pathname.startsWith('/book')
+  const isPublicPage = pathname === '/welcome' || pathname.startsWith('/auth') || pathname.startsWith('/book') || pathname === '/demo'
   if (isPublicPage) {
     return <>{children}</>
   }

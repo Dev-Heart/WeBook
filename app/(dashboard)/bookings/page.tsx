@@ -31,6 +31,7 @@ interface Booking {
   status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
   notes?: string
   created_at: string
+  price?: number
 }
 
 import { useSubscription } from '@/components/subscription-provider'
@@ -56,6 +57,31 @@ export default function BookingsPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
+        // Demo mode: Load from localStorage
+        const storedBookings = localStorage.getItem('hustle_bookings')
+        if (storedBookings) {
+          try {
+            const parsed = JSON.parse(storedBookings)
+            // Map demo data (camelCase) to component state (snake_case)
+            const mapped = parsed.map((b: any) => ({
+              id: b.id,
+              user_id: 'demo',
+              client_name: b.clientName,
+              client_phone: b.clientPhone,
+              service_name: b.serviceName,
+              date: b.date,
+              time: b.time,
+              status: b.status,
+              notes: b.notes,
+              created_at: b.createdAt,
+              price: b.price || 0
+            }))
+            setBookings(mapped)
+            setBusinessName('Glam Studio')
+          } catch (e) {
+            console.error('Error parsing demo bookings:', e)
+          }
+        }
         setLoading(false)
         return
       }

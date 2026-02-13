@@ -90,7 +90,8 @@ export default function DemoPage() {
                 time: '14:00',
                 notes: 'Prefers box braids',
                 status: 'confirmed',
-                createdAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString()
+                createdAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                price: 150
             },
             {
                 id: '2',
@@ -102,7 +103,8 @@ export default function DemoPage() {
                 date: tomorrow.toISOString().split('T')[0],
                 time: '10:00',
                 status: 'confirmed',
-                createdAt: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString()
+                createdAt: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+                price: 50
             },
             {
                 id: '3',
@@ -115,7 +117,8 @@ export default function DemoPage() {
                 date: tomorrow.toISOString().split('T')[0],
                 time: '13:30',
                 status: 'scheduled',
-                createdAt: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString()
+                createdAt: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+                price: 200
             },
             {
                 id: '4',
@@ -127,7 +130,8 @@ export default function DemoPage() {
                 date: dayAfter.toISOString().split('T')[0],
                 time: '09:00',
                 status: 'confirmed',
-                createdAt: today.toISOString()
+                createdAt: today.toISOString(),
+                price: 30
             }
         ]
 
