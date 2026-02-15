@@ -209,10 +209,27 @@ export default function BookingPage() {
     setStep('datetime')
   }
 
-  const handleDateTimeNext = () => {
-    if (selectedDate && selectedTime) {
-      setStep('details')
+  const handleDateTimeNext = async () => {
+    if (!selectedDate || !selectedTime) return
+
+    // Re-validate slot availability before proceeding
+    // (in case another user just booked it)
+    setLoadingSlots(true)
+    await loadAvailableSlots(selectedDate)
+    setLoadingSlots(false)
+
+    // Check if the selected time is still available
+    const dateStr = selectedDate.toISOString().split('T')[0]
+    const { getAvailableSlotsAction } = await import('@/app/actions')
+    const { bookedTimes } = await getAvailableSlotsAction(userId!, dateStr)
+
+    if (bookedTimes.includes(selectedTime)) {
+      alert('Sorry, this time slot was just booked by another customer. Please select a different time.')
+      setSelectedTime('')
+      return
     }
+
+    setStep('details')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
