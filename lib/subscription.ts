@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
+import { cache } from 'react'
 import { type Subscription, type SubscriptionStatus, type SubscriptionPlan } from '@/lib/definitions'
 
 export const TRIAL_DAYS = 30
 
-export async function getSubscription() {
+export const getSubscription = cache(async () => {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -16,7 +17,7 @@ export async function getSubscription() {
         .single()
 
     return subscription as Subscription | null
-}
+})
 
 export async function getSubscriptionStatus() {
     const sub = await getSubscription()
