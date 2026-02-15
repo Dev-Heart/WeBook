@@ -238,13 +238,30 @@ export default function BookingPage() {
       })
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to create booking')
+        // Show error to user
+        alert(result.error || 'Failed to create booking. Please try again.')
+
+        // Refresh available slots to show updated availability
+        await loadAvailableSlots(selectedDate)
+
+        // Navigate back to datetime step so user can pick another slot
+        setSelectedTime('') // Clear selected time
+        setStep('datetime')
+        setIsSubmitting(false)
+        return
       }
 
       setStep('success')
     } catch (error: any) {
       console.error('[v0] Error saving booking:', error)
       alert(error.message || 'Failed to create booking. Please try again.')
+
+      // Refresh slots on error as well
+      if (selectedDate) {
+        await loadAvailableSlots(selectedDate)
+      }
+      setSelectedTime('')
+      setStep('datetime')
     } finally {
       setIsSubmitting(false)
     }

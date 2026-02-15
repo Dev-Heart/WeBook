@@ -160,6 +160,23 @@ export async function createBooking(payload: {
     try {
         await ensureSubscriptionActive() // Enforce subscription check
 
+        // Check for double-booking (prevent race conditions)
+        const { data: conflictingBooking } = await supabase
+            .from('bookings')
+            .select('id')
+            .eq('user_id', payload.userId)
+            .eq('date', payload.date)
+            .eq('time', payload.time)
+            .in('status', ['scheduled', 'confirmed'])
+            .maybeSingle()
+
+        if (conflictingBooking) {
+            return {
+                success: false,
+                error: 'This time slot has just been booked. Please choose another time.'
+            }
+        }
+
         // 1. Find or Create Client FIRST to link properly
         let clientId: string | null = null
 
