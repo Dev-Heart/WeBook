@@ -1,10 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
-import { cache } from 'react'
 import { type Subscription, type SubscriptionStatus, type SubscriptionPlan } from '@/lib/definitions'
 
 export const TRIAL_DAYS = 30
 
-export const getSubscription = cache(async () => {
+export async function getSubscription() {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -17,7 +16,7 @@ export const getSubscription = cache(async () => {
         .single()
 
     return subscription as Subscription | null
-})
+}
 
 export async function getSubscriptionStatus() {
     const sub = await getSubscription()
@@ -38,8 +37,9 @@ export async function getSubscriptionStatus() {
     const daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
 
     // Logic for lock-down
+    // Active and trial subscriptions are NEVER locked, regardless of date
+    // Only lock if explicitly 'expired' or if it's neither active/trial AND the date has passed
     const isExpiredByDate = now > endDate
-    // Trial or active subs are only locked if explicitly 'expired' or if the date has passed
     const isLocked = sub.status === 'expired' ||
         (sub.status !== 'active' && sub.status !== 'trial' && isExpiredByDate)
 
