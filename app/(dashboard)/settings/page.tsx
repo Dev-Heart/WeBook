@@ -348,6 +348,40 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Support Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="size-5" />
+            Support
+          </CardTitle>
+          <CardDescription>Get help with WeBook</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <p className="font-medium">Contact Support</p>
+              <p className="text-sm text-muted-foreground">
+                Email us for help, feedback, or feature requests
+              </p>
+            </div>
+            <Button variant="outline" asChild>
+              <a href="mailto:dev@teamthink.co.za">
+                Email Support
+              </a>
+            </Button>
+          </div>
+          <div className="rounded-lg bg-muted/50 p-4">
+            <p className="text-sm text-muted-foreground">
+              <strong>Support Email:</strong> dev@teamthink.co.za
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              We typically respond within 24-48 hours
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Troubleshooting */}
       <Card>
         <CardHeader>
