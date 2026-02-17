@@ -158,7 +158,8 @@ export async function createBooking(payload: {
     const supabase = createAdminClient()
 
     try {
-        await ensureSubscriptionActive() // Enforce subscription check
+        // Subscription check removed - bookings are core functionality
+        // await ensureSubscriptionActive()
 
         // Check for double-booking (prevent race conditions)
         const { data: conflictingBooking } = await supabase
